@@ -151,6 +151,7 @@ export default function Editor({ className }: { className?: string }) {
     <div className={(clsx("flex items-center justify-center"), className)}>
       <EditorProvider
         slotBefore={<BubbleMenu />}
+        slotAfter={<DragHandleWrapper />}
         extensions={extensions}
         content={content}
         editorProps={{
@@ -160,9 +161,7 @@ export default function Editor({ className }: { className?: string }) {
           },
         }}
         immediatelyRender={false}
-      >
-        <DragHandleWrapper />
-      </EditorProvider>
+      ></EditorProvider>
     </div>
   );
 }

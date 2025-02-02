@@ -142,7 +142,24 @@ export default function BubbleMenu() {
   return (
     <div ref={containerRef}>
       {editor && (
-        <TipTapBubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+        <TipTapBubbleMenu
+          editor={editor}
+          tippyOptions={{
+            duration: 100,
+            appendTo: () => document.body,
+            getReferenceClientRect: () => {
+              const selection = editor.state.selection;
+              if (!selection || selection.empty) {
+                return new DOMRect(0, 0, 0, 0);
+              }
+              const rect = editor.view.coordsAtPos(selection.from);
+
+              const width = rect.right - rect.left;
+              const height = rect.bottom - rect.top;
+              return new DOMRect(rect.left, rect.top, width, height);
+            },
+          }}
+        >
           <ToggleGroup
             type="multiple"
             className=" flex bg-white p-2 rounded-lg shadow-xl border border-gray-200 size-max justify-center items-center"

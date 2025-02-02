@@ -18,7 +18,7 @@ export default memo(function EditorNodeType({
         onConnect={(params) => console.log("handle onConnect", params)}
         isConnectable={isConnectable}
       />
-      <Editor className="border border-red-700 nodrag" />
+      <Editor className="border border-red-700 nodrag z-50" />
       <Handle
         type="source"
         position={Position.Right}
