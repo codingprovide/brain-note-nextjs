@@ -21,7 +21,12 @@ const initialNodes = [
     data: { label: "1" },
     type: "editorNode",
   },
-  { id: "2", position: { x: 0, y: 100 }, data: { label: "2" } },
+  {
+    id: "2",
+    position: { x: 0, y: 100 },
+    data: { label: "2" },
+    type: "editorNode",
+  },
 ];
 const initialEdges = [{ id: "e1-2", source: "1", target: "2" }];
 
