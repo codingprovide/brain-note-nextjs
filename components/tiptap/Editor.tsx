@@ -7,7 +7,8 @@ import { EditorProvider } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import BubbleMenu from "@/components/tiptap/BubbleMenu";
 import Underline from "@tiptap/extension-underline";
-import Highlight from "@tiptap/extension-highlight";
+// import Highlight from "@tiptap/extension-highlight";
+import { Highlight } from "./extensions/HeighLight";
 import TextAlign from "@tiptap/extension-text-align";
 import Link from "@tiptap/extension-link";
 import { FontSize } from "@/components/tiptap/extensions/FontSize";
@@ -88,10 +89,6 @@ const extensions = [
   Underline,
   TextStyle.configure({ mergeNestedSpanStyles: true }),
   Color,
-  Highlight.configure({
-    multicolor: true,
-    HTMLAttributes: { class: "rounded-md px-1 py-0.5 box-decoration-clone" },
-  }),
   TextAlign.configure({
     types: ["heading", "paragraph"],
     alignments: ["left", "center", "right", "justify"],
@@ -170,6 +167,10 @@ const extensions = [
     },
   }),
   FontSize,
+  Highlight.configure({
+    multicolor: true,
+    HTMLAttributes: { class: "rounded-md px-1 py-0.5 box-decoration-clone" },
+  }),
 ];
 
 const content = `
@@ -216,7 +217,7 @@ export default function Editor({ className }: { className?: string }) {
         editorProps={{
           attributes: {
             class:
-              "prose prose-p:m-0 prose-sm sm:prose-base lg:prose-lg xl:prose-2xl m-5 focus:outline-none p-5",
+              "prose prose-strong:text-inherit prose-p:m-0 prose-sm sm:prose-base lg:prose-lg xl:prose-2xl m-5 focus:outline-none p-5",
           },
         }}
         immediatelyRender={false}

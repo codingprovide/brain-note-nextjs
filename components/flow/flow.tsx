@@ -51,6 +51,7 @@ export default function App() {
         onConnect={onConnect}
         proOptions={proOptions}
         nodeTypes={nodeTypes}
+        minZoom={0.1}
       >
         <Controls />
         <MiniMap />
