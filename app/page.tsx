@@ -1,11 +1,13 @@
 "use client";
 import { ReactFlowProvider } from "@xyflow/react";
-import Flow from "../components/flow/flow";
+import Flow from "../components/flow/Flow";
 
 export default function FlowWithProvider() {
   return (
-    <ReactFlowProvider>
-      <Flow />
-    </ReactFlowProvider>
+    <div className="h-screen w-screen relative overflow-hidden">
+      <ReactFlowProvider>
+        <Flow />
+      </ReactFlowProvider>
+    </div>
   );
 }
