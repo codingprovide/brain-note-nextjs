@@ -173,61 +173,23 @@ const extensions = [
   }),
 ];
 
-// const content = `
-// <h2>
-//   Hi there,
-// </h2>
-// <p>
-//   This is a <em>basic</em> example of <strong>Tiptap</strong>. Sure, there are all kinds of basic text styles you’d probably expect from a text editor. But wait until you see the lists:
-// </p>
-// <ul>
-//   <li>
-//     That’s a bullet list with one …
-//   </li>
-//   <li>
-//     … or two list items.
-//   </li>
-// </ul>
-// <p>
-//   Isn’t that great? And all of that is editable. But wait, there’s more. Let’s try a code block:
-// </p>
-// <pre><code class="language-css">body {
-//   display: none;
-// }</code></pre>
-// <p>
-//   I know, I know, this is impressive. It’s only the tip of the iceberg though. Give it a try and click a little bit around. Don’t forget to check the other examples too.
-// </p>
-// <blockquote>
-//   Wow, that’s amazing. Good work, boy! 👏
-//   <br />
-//   — Mom
-// </blockquote>
-// <div data-type="drag_item">
-//   Drag me!
-// </div>
-// `;
-
 export default function Editor({
   className,
   data,
 }: {
-  className?: string;
+  className: string;
   data: string;
 }) {
   return (
-    <div className={(clsx("flex items-center justify-center"), className)}>
-      <EditorProvider
-        slotBefore={<BubbleMenu />}
-        extensions={extensions}
-        content={data.content}
-        editorProps={{
-          attributes: {
-            class:
-              "prose prose-th:bg-black prose-strong:text-inherit prose-p:m-0 prose-sm sm:prose-base lg:prose-lg xl:prose-2xl focus:outline-none p-5",
-          },
-        }}
-        immediatelyRender={false}
-      ></EditorProvider>
-    </div>
+    <EditorProvider
+      slotBefore={<BubbleMenu />}
+      extensions={extensions}
+      editorProps={{
+        attributes: {
+          class: className,
+        },
+      }}
+      immediatelyRender={false}
+    ></EditorProvider>
   );
 }

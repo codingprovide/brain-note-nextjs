@@ -13,6 +13,7 @@ import EditorNodeType from "./EditorNodeType";
 import DrawNodeType from "./DrawNodeType";
 import "@xyflow/react/dist/style.css";
 import { useReactFlow } from "@xyflow/react";
+import { v4 as uuid } from "uuid";
 
 const proOptions = { hideAttribution: true };
 
@@ -23,39 +24,7 @@ const initialNodes = [
     data: {
       label: "1",
       toolbarPosition: Position.Top,
-      content: `
-<h2>
-  Hi there,
-</h2>
-<p>
-  This is a <em>basic</em> example of <strong>Tiptap</strong>. Sure, there are all kinds of basic text styles you’d probably expect from a text editor. But wait until you see the lists:
-</p>
-<ul>
-  <li>
-    That’s a bullet list with one …
-  </li>
-  <li>
-    … or two list items.
-  </li>
-</ul>
-<p>
-  Isn’t that great? And all of that is editable. But wait, there’s more. Let’s try a code block:
-</p>
-<pre><code class="language-css">body {
-  display: none;
-}</code></pre>
-<p>
-  I know, I know, this is impressive. It’s only the tip of the iceberg though. Give it a try and click a little bit around. Don’t forget to check the other examples too.
-</p>
-<blockquote>
-  Wow, that’s amazing. Good work, boy! 👏
-  <br />
-  — Mom
-</blockquote>
-<div data-type="drag_item">
-  Drag me!
-</div>
-`,
+      content: "",
     },
     type: "editorNode",
   },
@@ -74,29 +43,6 @@ const initialEdges = [{ id: "e1-2", source: "1", target: "2" }];
 const nodeTypes = { editorNode: EditorNodeType, drawNode: DrawNodeType };
 
 export default function Flow() {
-  useEffect(() => {
-    // 在组件挂载后，查询 .react-flow__pane 元素
-    const pane = document.querySelector(".react-flow__pane");
-
-    if (pane) {
-      // 每次滚动时调用该函数，将滚动位置重置
-      const handleScroll = (e) => {
-        e.currentTarget.scrollTo({ top: 0, left: 0, behavior: "instant" });
-        console.log("滚动事件已处理，滚动位置已重置");
-      };
-
-      // 添加滚动事件监听器
-      pane.addEventListener("scroll", handleScroll);
-
-      // 组件卸载时，移除事件监听器，防止内存泄漏
-      return () => {
-        pane.removeEventListener("scroll", handleScroll);
-      };
-    } else {
-      console.warn("未找到类名为 '.react-flow__pane' 的元素");
-    }
-  }, []);
-
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { screenToFlowPosition } = useReactFlow();
@@ -112,7 +58,7 @@ export default function Flow() {
         "changedTouches" in event ? event.changedTouches[0] : event;
 
       const newNode = {
-        id: `${nodes.length + 1}`,
+        id: uuid(),
         position: screenToFlowPosition({ x: clientX, y: clientY }),
         data: {
           label: `${nodes.length + 1}`,
