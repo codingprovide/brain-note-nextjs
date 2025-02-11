@@ -1,6 +1,6 @@
 "use client";
 import clsx from "clsx";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState, useEffect, useRef } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { useReactFlow, NodeResizer, useNodeId } from "@xyflow/react";
 import { Trash2 } from "lucide-react";
@@ -11,6 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { v4 as uuid } from "uuid";
 
 import Editor from "../tiptap/Editor";
 
@@ -18,36 +19,67 @@ interface EditorNodeTypeProps {
   isConnectable: boolean;
   data: any;
   id: string;
+  selected: boolean;
 }
 
 export default memo(function EditorNodeType({
   isConnectable,
   data,
+  selected,
 }: EditorNodeTypeProps) {
-  // create a delete node function
+  const [isEditor, setIsEditor] = useState(false);
   const id = useNodeId();
   const { setNodes } = useReactFlow();
+  const nodeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        nodeRef.current &&
+        event.target instanceof HTMLElement &&
+        !nodeRef.current.contains(event.target)
+      ) {
+        setIsEditor(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const handleDeleteNode = useCallback(() => {
     setNodes((nodes) => nodes.filter((node) => node.id !== id));
-  }, []);
+  }, [id, setNodes]);
+
   return (
-    // 1. 用 w-full h-full relative 保证本层容器随 NodeResizer 改变大小
+    /**
+     * 1. 仍保持 w-full h-full relative + minWidth/minHeight
+     *    但增加 flex flex-col，使内部可分为“顶部按钮区”和“编辑器区”。
+     */
     <div
       style={{
         minWidth: 200,
-        minHeight: 100,
+        minHeight: 200,
       }}
       className={clsx(
-        " w-full h-full relative bg-white p-1 nodrag overflow-hidden"
+        "w-full h-full relative bg-white",
+        "flex flex-col",
+        { nodrag: isEditor } // ← 新增
       )}
+      onDoubleClick={() => setIsEditor(true)}
+      ref={nodeRef}
     >
-      <div className=" w-full h-auto hover:bg-gray-200">
+      {/* 顶部按钮区 */}
+      <div className="w-full p-1 hover:bg-gray-100 flex items-center justify-between">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="outline"
-                className=" size-max p-1"
+                className="p-1 w-8 h-8"
                 onClick={handleDeleteNode}
               >
                 <Trash2 className="w-4 h-4" />
@@ -59,9 +91,10 @@ export default memo(function EditorNodeType({
           </Tooltip>
         </TooltipProvider>
       </div>
+
       <NodeResizer
         minWidth={200}
-        minHeight={100}
+        minHeight={200}
         lineStyle={{ stroke: "#ccc", strokeWidth: 5 }}
         handleStyle={{
           width: 10,
@@ -70,36 +103,141 @@ export default memo(function EditorNodeType({
           stroke: "#ccc",
           cursor: "nwse-resize",
         }}
+        isVisible={selected}
       />
 
-      {/* 连接点：左侧 */}
+      {/* 左侧连线把手 */}
       <Handle
+        id={"target-left"}
         type="target"
         position={Position.Left}
-        onConnect={(params) => console.log("handle onConnect", params)}
         isConnectable={isConnectable}
+        style={{
+          width: 8,
+          height: 8,
+          borderStyle: "solid",
+          borderWidth: 1,
+          borderColor: "#cbd5e1",
+          backgroundColor: "white",
+        }}
+      />
+      <Handle
+        id={"source-left"}
+        type="source"
+        position={Position.Left}
+        isConnectable={isConnectable}
+        style={{
+          width: 8,
+          height: 8,
+          borderStyle: "solid",
+          borderWidth: 1,
+          borderColor: "#cbd5e1",
+          backgroundColor: "white",
+        }}
       />
 
-      {/* 3. 再用一层 w-full h-full 来包裹 Editor，确保占满父容器 */}
-      {/* 4. Editor 自身也设置 w-full h-full，让其随外层 div 变化 */}
-      <Editor
-        className={clsx(
-          "prose prose-th:bg-black prose-strong:text-inherit prose-p:m-0 prose-sm sm:prose-base lg:prose-lg xl:prose-2xl",
-          "focus:outline-none",
-          "p-5",
-          "w-full h-full",
-          "bg-white",
-          "max-w-none max-h-none"
-        )}
-        data={data}
-      />
+      {/**
+       * 2. 编辑器区，使用 flex-grow 或 flex-1 填满剩余空间
+       *    并通过 overflow-auto 保证超出时出现滚动条。
+       */}
+      <div className="flex-1 px-1 overflow-hidden">
+        <Editor
+          className={clsx(
+            "prose prose-th:bg-black prose-strong:text-inherit prose-p:m-0 prose-sm sm:prose-base lg:prose-lg xl:prose-2xl",
+            "focus:outline-none",
+            "p-5",
+            "w-full min-h-full", // 可以加一个 min-h-full，让编辑器本身初始铺满容器
+            "bg-white",
+            "max-w-none max-h-none"
+          )}
+          data={data}
+        />
+      </div>
 
-      {/* 连接点：右侧 */}
+      {/* 右侧连线把手 */}
       <Handle
         type="source"
         position={Position.Right}
-        id="a"
+        id="source-right"
         isConnectable={isConnectable}
+        style={{
+          width: 8,
+          height: 8,
+          borderStyle: "solid",
+          borderWidth: 1,
+          borderColor: "#cbd5e1",
+          backgroundColor: "white",
+        }}
+      />
+      <Handle
+        id={"target-right"}
+        type="target"
+        position={Position.Right}
+        isConnectable={isConnectable}
+        style={{
+          width: 8,
+          height: 8,
+          borderStyle: "solid",
+          borderWidth: 1,
+          borderColor: "#cbd5e1",
+          backgroundColor: "white",
+        }}
+      />
+      <Handle
+        type="source"
+        position={Position.Top}
+        id="source-top"
+        isConnectable={isConnectable}
+        style={{
+          width: 8,
+          height: 8,
+          borderStyle: "solid",
+          borderWidth: 1,
+          borderColor: "#cbd5e1",
+          backgroundColor: "white",
+        }}
+      />
+      <Handle
+        id={"target-top"}
+        type="target"
+        position={Position.Top}
+        isConnectable={isConnectable}
+        style={{
+          width: 8,
+          height: 8,
+          borderStyle: "solid",
+          borderWidth: 1,
+          borderColor: "#cbd5e1",
+          backgroundColor: "white",
+        }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="source-bottom"
+        isConnectable={isConnectable}
+        style={{
+          width: 8,
+          height: 8,
+          borderStyle: "solid",
+          borderWidth: 1,
+          borderColor: "#cbd5e1",
+          backgroundColor: "white",
+        }}
+      />
+      <Handle
+        id={"target-bottom"}
+        type="target"
+        position={Position.Bottom}
+        isConnectable={isConnectable}
+        style={{
+          width: 8,
+          height: 8,
+          borderStyle: "solid",
+          borderWidth: 1,
+          borderColor: "#cbd5e1",
+          backgroundColor: "white",
+        }}
       />
     </div>
   );

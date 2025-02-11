@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   ReactFlow,
   MiniMap,
@@ -8,11 +8,12 @@ import {
   addEdge,
   SelectionMode,
   Position,
+  reconnectEdge,
+  useReactFlow,
 } from "@xyflow/react";
 import EditorNodeType from "./EditorNodeType";
 import DrawNodeType from "./DrawNodeType";
 import "@xyflow/react/dist/style.css";
-import { useReactFlow } from "@xyflow/react";
 import { v4 as uuid } from "uuid";
 
 const proOptions = { hideAttribution: true };
@@ -43,6 +44,7 @@ const initialEdges = [{ id: "e1-2", source: "1", target: "2" }];
 const nodeTypes = { editorNode: EditorNodeType, drawNode: DrawNodeType };
 
 export default function Flow() {
+  const edgeReconnectSuccessful = useRef(true);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { screenToFlowPosition } = useReactFlow();
@@ -50,6 +52,23 @@ export default function Flow() {
     (params) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
+
+  const onReconnectStart = useCallback(() => {
+    edgeReconnectSuccessful.current = false;
+  }, []);
+
+  const onReconnect = useCallback((oldEdge, newConnection) => {
+    edgeReconnectSuccessful.current = true;
+    setEdges((els) => reconnectEdge(oldEdge, newConnection, els));
+  }, []);
+
+  const onReconnectEnd = useCallback((_, edge) => {
+    if (!edgeReconnectSuccessful.current) {
+      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    }
+
+    edgeReconnectSuccessful.current = true;
+  }, []);
 
   //當滑鼠連續點擊兩次新增節點
   const handleAddNode = (event) => {
@@ -98,6 +117,9 @@ export default function Flow() {
         //停用雙擊畫布進行縮放的功能
         zoomOnDoubleClick={false}
         style={{ backgroundColor: "#F7F9FB" }}
+        onReconnect={onReconnect}
+        onReconnectStart={onReconnectStart}
+        onReconnectEnd={onReconnectEnd}
       >
         <Controls />
         <MiniMap />
