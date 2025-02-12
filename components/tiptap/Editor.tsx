@@ -176,12 +176,17 @@ const extensions = [
 export default function Editor({
   className,
   data,
+  onContentChange,
 }: {
   className: string;
-  data: string;
+  data: any;
+  onContentChange: (data: any) => void;
 }) {
+  const parsedContent = data.content || "";
   return (
     <EditorProvider
+      content={parsedContent}
+      onUpdate={({ editor }) => onContentChange(editor.getJSON())}
       slotBefore={<BubbleMenu />}
       extensions={extensions}
       editorProps={{
