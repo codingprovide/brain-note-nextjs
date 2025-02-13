@@ -11,22 +11,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { v4 as uuid } from "uuid";
-
+// import { v4 as uuid } from "uuid";
 import Editor from "../tiptap/Editor";
-
-interface EditorNodeTypeProps {
-  isConnectable: boolean;
-  data: any;
-  id: string;
-  selected: boolean;
-}
+import { JSONContent } from "@tiptap/react";
 
 export default memo(function EditorNodeType({
   isConnectable,
   data,
   selected,
-}: EditorNodeTypeProps) {
+}: {
+  isConnectable: boolean;
+  data: { content: JSONContent | undefined };
+  selected: boolean;
+}) {
   const [isEditor, setIsEditor] = useState(false);
   const nodeId = useNodeId();
   const { setNodes } = useReactFlow();
@@ -50,45 +47,12 @@ export default memo(function EditorNodeType({
     };
   }, []);
 
-  // useEffect(() => {
-  //   const handleClickOutside = (event: MouseEvent) => {
-  //     if (
-  //       nodeRef.current &&
-  //       event.target instanceof HTMLElement &&
-  //       !nodeRef.current.contains(event.target)
-  //     ) {
-  //       // Check if the clicked element is inside the tippy-content (bubble menu)
-  //       let isClickInsideTippyContent = false;
-  //       let targetElement = event.target as HTMLElement | null;
-  //       while (targetElement) {
-  //         if (targetElement.classList.contains("tippy-content")) {
-  //           isClickInsideTippyContent = true;
-  //           break;
-  //         }
-  //         targetElement = targetElement.parentElement;
-  //         if (!targetElement) break;
-  //       }
-
-  //       // Only close the editor if the click is NOT inside the tippy-content
-  //       if (!isClickInsideTippyContent) {
-  //         setIsEditor(false);
-  //       }
-  //     }
-  //   };
-
-  //   document.addEventListener("mousedown", handleClickOutside);
-
-  //   return () => {
-  //     document.removeEventListener("mousedown", handleClickOutside);
-  //   };
-  // }, []);
-
   const handleDeleteNode = useCallback(() => {
     setNodes((nodes) => nodes.filter((node) => node.id !== nodeId));
   }, [nodeId, setNodes]);
 
   const handleContentChange = useCallback(
-    (content) => {
+    (content: JSONContent | undefined) => {
       setNodes((nds) =>
         nds.map((node) => {
           if (node.id === nodeId) {

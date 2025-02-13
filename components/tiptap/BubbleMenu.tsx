@@ -50,7 +50,6 @@ export default function BubbleMenu() {
             .getComputedStyle(parentElement)
             .getPropertyValue("font-size");
           const newFontSize = parseInt(computedFontSize, 10).toString();
-          console.log("newFontSize", newFontSize);
           setCurrentSelectionFontSize(newFontSize);
         }
       }

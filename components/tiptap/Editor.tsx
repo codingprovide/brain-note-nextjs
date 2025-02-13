@@ -3,7 +3,7 @@
 import React from "react";
 import { Color } from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
-import { EditorProvider } from "@tiptap/react";
+import { EditorProvider, JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import BubbleMenu from "@/components/tiptap/BubbleMenu";
 import Underline from "@tiptap/extension-underline";
@@ -12,27 +12,27 @@ import { Highlight } from "./extensions/HeighLight";
 import TextAlign from "@tiptap/extension-text-align";
 import Link from "@tiptap/extension-link";
 import { FontSize } from "@/components/tiptap/extensions/FontSize";
-import clsx from "clsx";
+// import clsx from "clsx";
 import { SlashCommand } from "./extensions/SlashCommand";
 import { TaskItem } from "@tiptap/extension-task-item";
 import { TaskList } from "@tiptap/extension-task-list";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { FocusClasses as Focus } from "@tiptap/extension-focus";
-import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
+// import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 import { Subscript } from "@tiptap/extension-subscript";
 import { Superscript } from "@tiptap/extension-superscript";
-import { Collaboration } from "@tiptap/extension-collaboration";
-import { Emoji, gitHubEmojis } from "@tiptap-pro/extension-emoji";
-import { TableOfContents } from "@tiptap-pro/extension-table-of-contents";
-import { FileHandler } from "@tiptap-pro/extension-file-handler";
+// import { Collaboration } from "@tiptap/extension-collaboration";
+// import { Emoji, gitHubEmojis } from "@tiptap-pro/extension-emoji";
+// import { TableOfContents } from "@tiptap-pro/extension-table-of-contents";
+// import { FileHandler } from "@tiptap-pro/extension-file-handler";
 import { Details } from "@tiptap-pro/extension-details";
 import { DetailsContent } from "@tiptap-pro/extension-details-content";
 import { DetailsSummary } from "@tiptap-pro/extension-details-summary";
 import { UniqueID } from "@tiptap-pro/extension-unique-id";
 import { isChangeOrigin } from "@tiptap/extension-collaboration";
-import { emojiSuggestion } from "@/components/tiptap/extensions/EmojiSuggestion";
-import { TableOfContentsNode } from "@/components/tiptap/extensions/TableOfContentsNode";
+// import { emojiSuggestion } from "@/components/tiptap/extensions/EmojiSuggestion";
+// import { TableOfContentsNode } from "@/components/tiptap/extensions/TableOfContentsNode";
 import Table from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
@@ -179,8 +179,8 @@ export default function Editor({
   onContentChange,
 }: {
   className: string;
-  data: any;
-  onContentChange: (data: any) => void;
+  data: { content: JSONContent | undefined };
+  onContentChange: (content: JSONContent) => void;
 }) {
   const parsedContent = data.content || "";
   return (

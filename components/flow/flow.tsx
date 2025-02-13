@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ReactFlow,
   MiniMap,
@@ -7,20 +7,20 @@ import {
   useEdgesState,
   addEdge,
   SelectionMode,
-  Position,
   reconnectEdge,
   useReactFlow,
   Panel,
 } from "@xyflow/react";
+import type { Edge, Connection, ReactFlowInstance } from "@xyflow/react";
 import EditorNodeType from "./EditorNodeType";
 import DrawNodeType from "./DrawNodeType";
 import "@xyflow/react/dist/style.css";
 import { v4 as uuid } from "uuid";
 import { Button } from "../ui/Button";
-
+import { EditorNodePropsType } from "@/types/types";
 const proOptions = { hideAttribution: true };
 
-const initialNodes = [];
+const initialNodes: EditorNodePropsType[] = [];
 const initialEdges = [{ id: "e1-2", source: "1", target: "2" }];
 
 const nodeTypes = { editorNode: EditorNodeType, drawNode: DrawNodeType };
@@ -30,11 +30,14 @@ export default function Flow() {
   const edgeReconnectSuccessful = useRef(true);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [rfInstance, setRfInstance] = useState<any>(null);
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance<
+    EditorNodePropsType,
+    { id: string; source: string; target: string }
+  > | null>(null);
 
   const { screenToFlowPosition, setViewport } = useReactFlow();
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
 
@@ -42,18 +45,24 @@ export default function Flow() {
     edgeReconnectSuccessful.current = false;
   }, []);
 
-  const onReconnect = useCallback((oldEdge, newConnection) => {
-    edgeReconnectSuccessful.current = true;
-    setEdges((els) => reconnectEdge(oldEdge, newConnection, els));
-  }, []);
+  const onReconnect = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => {
+      edgeReconnectSuccessful.current = true;
+      setEdges((els) => reconnectEdge(oldEdge, newConnection, els));
+    },
+    [setEdges]
+  );
 
-  const onReconnectEnd = useCallback((_, edge) => {
-    if (!edgeReconnectSuccessful.current) {
-      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-    }
+  const onReconnectEnd = useCallback(
+    (_: unknown, edge: Edge) => {
+      if (!edgeReconnectSuccessful.current) {
+        setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+      }
 
-    edgeReconnectSuccessful.current = true;
-  }, []);
+      edgeReconnectSuccessful.current = true;
+    },
+    [setEdges]
+  );
 
   const onSave = useCallback(() => {
     if (rfInstance) {
@@ -79,8 +88,12 @@ export default function Flow() {
   }, [setNodes, setViewport, setEdges]);
 
   //當滑鼠連續點擊兩次新增節點
-  const handleAddNode = (event) => {
-    if (event.target.classList.contains("react-flow__pane")) {
+  const handleAddNode = (
+    event:
+      | React.MouseEvent<HTMLDivElement, MouseEvent>
+      | React.TouchEvent<HTMLDivElement>
+  ) => {
+    if ((event.target as Element).classList.contains("react-flow__pane")) {
       const { clientX, clientY } =
         "changedTouches" in event ? event.changedTouches[0] : event;
 
@@ -88,13 +101,12 @@ export default function Flow() {
         id: uuid(),
         position: screenToFlowPosition({ x: clientX, y: clientY }),
         data: {
-          content: "",
+          content: undefined,
         },
         type: "editorNode",
       };
 
       setNodes((nds) => [...nds, newNode]);
-      console.log("New node added!");
     }
   };
 
