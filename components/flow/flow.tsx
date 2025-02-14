@@ -13,7 +13,7 @@ import {
 } from "@xyflow/react";
 import type { Edge, Connection, ReactFlowInstance } from "@xyflow/react";
 import EditorNodeType from "./EditorNodeType";
-import DrawNodeType from "./DrawNodeType";
+// import DrawNodeType from "./DrawNodeType";
 import "@xyflow/react/dist/style.css";
 import { v4 as uuid } from "uuid";
 import { Button } from "../ui/Button";
@@ -23,7 +23,7 @@ const proOptions = { hideAttribution: true };
 const initialNodes: EditorNodePropsType[] = [];
 const initialEdges = [{ id: "e1-2", source: "1", target: "2" }];
 
-const nodeTypes = { editorNode: EditorNodeType, drawNode: DrawNodeType };
+const nodeTypes = { editorNode: EditorNodeType };
 const flowKey = "example-flow";
 
 export default function Flow() {
