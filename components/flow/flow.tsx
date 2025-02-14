@@ -133,7 +133,7 @@ export default function Flow() {
         selectionMode={SelectionMode.Partial}
         //停用雙擊畫布進行縮放的功能
         zoomOnDoubleClick={false}
-        style={{ backgroundColor: "#F7F9FB" }}
+        style={{ backgroundColor: "#e5e7eb" }}
         onReconnect={onReconnect}
         onReconnectStart={onReconnectStart}
         onReconnectEnd={onReconnectEnd}
