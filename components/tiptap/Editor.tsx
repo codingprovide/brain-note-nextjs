@@ -7,40 +7,43 @@ import { EditorProvider, JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import BubbleMenu from "@/components/tiptap/BubbleMenu";
 import Underline from "@tiptap/extension-underline";
-// import Highlight from "@tiptap/extension-highlight";
 import { Highlight } from "./extensions/HeighLight";
 import TextAlign from "@tiptap/extension-text-align";
 import Link from "@tiptap/extension-link";
 import { FontSize } from "@/components/tiptap/extensions/FontSize";
-// import clsx from "clsx";
 import { SlashCommand } from "./extensions/SlashCommand";
 import { TaskItem } from "@tiptap/extension-task-item";
 import { TaskList } from "@tiptap/extension-task-list";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { FocusClasses as Focus } from "@tiptap/extension-focus";
-// import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 import { Subscript } from "@tiptap/extension-subscript";
 import { Superscript } from "@tiptap/extension-superscript";
-// import { Collaboration } from "@tiptap/extension-collaboration";
-// import { Emoji, gitHubEmojis } from "@tiptap-pro/extension-emoji";
-// import { TableOfContents } from "@tiptap-pro/extension-table-of-contents";
-// import { FileHandler } from "@tiptap-pro/extension-file-handler";
 import { Details } from "@tiptap-pro/extension-details";
 import { DetailsContent } from "@tiptap-pro/extension-details-content";
 import { DetailsSummary } from "@tiptap-pro/extension-details-summary";
 import { UniqueID } from "@tiptap-pro/extension-unique-id";
 import { isChangeOrigin } from "@tiptap/extension-collaboration";
-// import { emojiSuggestion } from "@/components/tiptap/extensions/EmojiSuggestion";
-// import { TableOfContentsNode } from "@/components/tiptap/extensions/TableOfContentsNode";
 import Table from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
-
-// import DragHandleWrapper from "@/components/tiptap/extensions/DragHandleWrapper";
+import { BlockquoteFigure } from "./extensions/BlockquoteFigure";
+import Emoji, { gitHubEmojis } from "@tiptap-pro/extension-emoji";
+import { emojiSuggestion } from "./extensions/EmojiSuggestion";
+import { ImageBlock } from "./extensions/ImageBlock";
+import { ImageUpload } from "./extensions/ImageUpload";
+import { TrailingNode } from "./extensions/TrailingNode";
 
 const extensions = [
+  TrailingNode,
+  ImageBlock,
+  ImageUpload,
+  Emoji.configure({
+    emojis: gitHubEmojis,
+    enableEmoticons: true,
+    suggestion: emojiSuggestion,
+  }),
   Table.configure({
     resizable: true,
     HTMLAttributes: {
@@ -171,6 +174,7 @@ const extensions = [
     multicolor: true,
     HTMLAttributes: { class: "rounded-md px-1 py-0.5 box-decoration-clone" },
   }),
+  BlockquoteFigure,
 ];
 
 export default function Editor({

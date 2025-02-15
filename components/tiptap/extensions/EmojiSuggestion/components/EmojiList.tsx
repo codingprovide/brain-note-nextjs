@@ -1,4 +1,5 @@
 import { EmojiItem } from "@tiptap-pro/extension-emoji";
+import Image from "next/image";
 import React, {
   ForwardedRef,
   forwardRef,
@@ -113,10 +114,16 @@ const EmojiList = forwardRef(
             data-emoji-name={item.name}
           >
             {item.fallbackImage ? (
-              <img src={item.fallbackImage} className="w-5 h-5" alt="emoji" />
+              <>
+                <Image
+                  src={item.fallbackImage!}
+                  className="w-5 h-5"
+                  alt="emoji"
+                />
+              </>
             ) : (
               item.emoji
-            )}{" "}
+            )}
             <span className="truncate text-ellipsis">:{item.name}:</span>
           </Button>
         ))}

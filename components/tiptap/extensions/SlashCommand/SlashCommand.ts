@@ -5,18 +5,44 @@ import Suggestion, {
   SuggestionKeyDownProps,
 } from "@tiptap/suggestion";
 import { PluginKey } from "@tiptap/pm/state";
-import tippy from "tippy.js";
+import tippy, { Instance } from "tippy.js";
 
+import MenuList from "./MenuList";
 import { GROUPS } from "./groups";
-import { MenuList } from "./MenuList";
+
+// 定義單個 slash command 的介面
+export interface SlashCommandAction {
+  label: string;
+  action: (editor: Editor) => void;
+  aliases?: string[];
+  shouldBeHidden?: (editor: Editor) => boolean;
+  isEnabled?: boolean;
+}
+
+// 定義 slash command 群組的介面
+export interface SlashCommandGroup {
+  label: string;
+  commands: SlashCommandAction[];
+}
+
+// 由於 GROUPS 的型別為 Group[]，與 SlashCommandGroup[] 不完全相同，故先轉換為 unknown，再轉型成 SlashCommandGroup[]
+const typedGroups = GROUPS as unknown as SlashCommandGroup[];
 
 const extensionName = "slashCommand";
 
-let popup: any;
+// popup 為 tippy.js 的實例陣列
+let popup: Instance[];
+
+// 直接使用 SuggestionProps 來作為 MenuList 的 props 型別
+export type MenuListProps = SuggestionProps;
+
+// 定義 MenuList 元件的 ref 介面
+interface MenuListRef {
+  onKeyDown: (props: SuggestionKeyDownProps) => boolean;
+}
 
 export const SlashCommand = Extension.create({
   name: extensionName,
-
   priority: 200,
 
   onCreate() {
@@ -36,7 +62,7 @@ export const SlashCommand = Extension.create({
           },
         ],
       },
-    });
+    }) as Instance[];
   },
 
   addProseMirrorPlugins() {
@@ -52,11 +78,11 @@ export const SlashCommand = Extension.create({
           const isRootDepth = $from.depth === 1;
           const isParagraph = $from.parent.type.name === "paragraph";
           const isStartOfNode = $from.parent.textContent?.charAt(0) === "/";
-          // TODO
+          // TODO: 檢查是否在 column 中
           const isInColumn = this.editor.isActive("column");
 
           const afterContent = $from.parent.textContent?.substring(
-            $from.parent.textContent?.indexOf("/")
+            $from.parent.textContent.indexOf("/")
           );
           const isValidAfterContent = !afterContent?.endsWith("  ");
 
@@ -66,7 +92,13 @@ export const SlashCommand = Extension.create({
             isValidAfterContent
           );
         },
-        command: ({ editor, props }: { editor: Editor; props: any }) => {
+        command: ({
+          editor,
+          props,
+        }: {
+          editor: Editor;
+          props: SlashCommandAction;
+        }) => {
           const { view, state } = editor;
           const { $head, $from } = view.state.selection;
 
@@ -74,7 +106,7 @@ export const SlashCommand = Extension.create({
           const from = $head?.nodeBefore
             ? end -
               ($head.nodeBefore.text?.substring(
-                $head.nodeBefore.text?.indexOf("/")
+                $head.nodeBefore.text.indexOf("/")
               ).length ?? 0)
             : $from.start();
 
@@ -85,41 +117,41 @@ export const SlashCommand = Extension.create({
           view.focus();
         },
         items: ({ query }: { query: string }) => {
-          const withFilteredCommands = GROUPS.map((group) => ({
-            ...group,
-            commands: group.commands
-              .filter((item) => {
-                const labelNormalized = item.label.toLowerCase().trim();
-                const queryNormalized = query.toLowerCase().trim();
+          // 過濾符合查詢條件的指令
+          const withFilteredCommands: SlashCommandGroup[] = typedGroups.map(
+            (group) => ({
+              ...group,
+              commands: group.commands
+                .filter((item) => {
+                  const labelNormalized = item.label.toLowerCase().trim();
+                  const queryNormalized = query.toLowerCase().trim();
 
-                if (item.aliases) {
-                  const aliases = item.aliases.map((alias) =>
-                    alias.toLowerCase().trim()
-                  );
+                  if (item.aliases) {
+                    const aliases = item.aliases.map((alias) =>
+                      alias.toLowerCase().trim()
+                    );
+                    return (
+                      labelNormalized.includes(queryNormalized) ||
+                      aliases.includes(queryNormalized)
+                    );
+                  }
 
-                  return (
-                    labelNormalized.includes(queryNormalized) ||
-                    aliases.includes(queryNormalized)
-                  );
-                }
+                  return labelNormalized.includes(queryNormalized);
+                })
+                .filter((command) =>
+                  command.shouldBeHidden
+                    ? !command.shouldBeHidden(this.editor)
+                    : true
+                ),
+            })
+          );
 
-                return labelNormalized.includes(queryNormalized);
-              })
-              .filter((command) =>
-                command.shouldBeHidden
-                  ? !command.shouldBeHidden(this.editor)
-                  : true
-              ),
-          }));
+          // 移除沒有符合條件的群組
+          const withoutEmptyGroups = withFilteredCommands.filter(
+            (group) => group.commands.length > 0
+          );
 
-          const withoutEmptyGroups = withFilteredCommands.filter((group) => {
-            if (group.commands.length > 0) {
-              return true;
-            }
-
-            return false;
-          });
-
+          // 啟用每個指令
           const withEnabledSettings = withoutEmptyGroups.map((group) => ({
             ...group,
             commands: group.commands.map((command) => ({
@@ -131,59 +163,56 @@ export const SlashCommand = Extension.create({
           return withEnabledSettings;
         },
         render: () => {
-          let component: any;
-
+          let component: ReactRenderer<typeof MenuList, MenuListProps> | null =
+            null;
           let scrollHandler: (() => void) | null = null;
+
+          // 計算參考元素的位置
+          const getReferenceClientRect = (props: SuggestionProps): DOMRect => {
+            if (!props.clientRect) {
+              return props.editor.storage[extensionName].rect;
+            }
+
+            const rect = props.clientRect();
+
+            if (!rect) {
+              return props.editor.storage[extensionName].rect;
+            }
+
+            let yPos = rect.y;
+            const componentHeight =
+              (component?.element as HTMLElement)?.offsetHeight || 0;
+
+            if (rect.top + componentHeight + 40 > window.innerHeight) {
+              const diff = rect.top + componentHeight - window.innerHeight + 40;
+              yPos = rect.y - diff;
+            }
+
+            return new DOMRect(rect.x, yPos, rect.width, rect.height);
+          };
 
           return {
             onStart: (props: SuggestionProps) => {
-              component = new ReactRenderer(MenuList, {
-                props,
-                editor: props.editor,
-              });
+              component = new ReactRenderer<typeof MenuList, MenuListProps>(
+                MenuList,
+                {
+                  props,
+                  editor: props.editor,
+                }
+              );
 
               const { view } = props.editor;
 
-              const editorNode = view.dom as HTMLElement;
-
-              const getReferenceClientRect = () => {
-                if (!props.clientRect) {
-                  return props.editor.storage[extensionName].rect;
-                }
-
-                const rect = props.clientRect();
-
-                if (!rect) {
-                  return props.editor.storage[extensionName].rect;
-                }
-
-                let yPos = rect.y;
-
-                if (
-                  rect.top + component.element.offsetHeight + 40 >
-                  window.innerHeight
-                ) {
-                  const diff =
-                    rect.top +
-                    component.element.offsetHeight -
-                    window.innerHeight +
-                    40;
-                  yPos = rect.y - diff;
-                }
-
-                return new DOMRect(rect.x, yPos, rect.width, rect.height);
-              };
-
               scrollHandler = () => {
                 popup?.[0].setProps({
-                  getReferenceClientRect,
+                  getReferenceClientRect: () => getReferenceClientRect(props),
                 });
               };
 
               view.dom.parentElement?.addEventListener("scroll", scrollHandler);
 
               popup?.[0].setProps({
-                getReferenceClientRect,
+                getReferenceClientRect: () => getReferenceClientRect(props),
                 appendTo: () => document.body,
                 content: component.element,
               });
@@ -192,68 +221,29 @@ export const SlashCommand = Extension.create({
             },
 
             onUpdate(props: SuggestionProps) {
-              component.updateProps(props);
+              component?.updateProps(props);
 
               const { view } = props.editor;
+              const updatedGetReferenceClientRect = () =>
+                getReferenceClientRect(props);
 
-              const editorNode = view.dom as HTMLElement;
+              view.dom.parentElement?.addEventListener(
+                "scroll",
+                scrollHandler!
+              );
 
-              const getReferenceClientRect = () => {
-                if (!props.clientRect) {
-                  return props.editor.storage[extensionName].rect;
-                }
-
-                const rect = props.clientRect();
-
-                if (!rect) {
-                  return props.editor.storage[extensionName].rect;
-                }
-
-                let yPos = rect.y;
-
-                if (
-                  rect.top + component.element.offsetHeight + 40 >
-                  window.innerHeight
-                ) {
-                  const diff =
-                    rect.top +
-                    component.element.offsetHeight -
-                    window.innerHeight +
-                    40;
-                  yPos = rect.y - diff;
-                }
-
-                return new DOMRect(rect.x, yPos, rect.width, rect.height);
-              };
-
-              const scrollHandler = () => {
-                popup?.[0].setProps({
-                  getReferenceClientRect,
-                });
-              };
-
-              view.dom.parentElement?.addEventListener("scroll", scrollHandler);
-
-              // eslint-disable-next-line no-param-reassign
               props.editor.storage[extensionName].rect = props.clientRect
-                ? getReferenceClientRect()
-                : {
-                    width: 0,
-                    height: 0,
-                    left: 0,
-                    top: 0,
-                    right: 0,
-                    bottom: 0,
-                  };
+                ? updatedGetReferenceClientRect()
+                : new DOMRect(0, 0, 0, 0);
+
               popup?.[0].setProps({
-                getReferenceClientRect,
+                getReferenceClientRect: updatedGetReferenceClientRect,
               });
             },
 
             onKeyDown(props: SuggestionKeyDownProps) {
               if (props.event.key === "Escape") {
                 popup?.[0].hide();
-
                 return true;
               }
 
@@ -261,10 +251,16 @@ export const SlashCommand = Extension.create({
                 popup?.[0].show();
               }
 
-              return component.ref?.onKeyDown(props);
+              const menuListRef = component?.ref as unknown as
+                | MenuListRef
+                | undefined;
+              if (menuListRef) {
+                return menuListRef.onKeyDown(props);
+              }
+              return false;
             },
 
-            onExit(props) {
+            onExit(props: SuggestionProps) {
               popup?.[0].hide();
               if (scrollHandler) {
                 const { view } = props.editor;
@@ -273,7 +269,8 @@ export const SlashCommand = Extension.create({
                   scrollHandler
                 );
               }
-              component.destroy();
+              component?.destroy();
+              component = null;
             },
           };
         },
@@ -283,14 +280,7 @@ export const SlashCommand = Extension.create({
 
   addStorage() {
     return {
-      rect: {
-        width: 0,
-        height: 0,
-        left: 0,
-        top: 0,
-        right: 0,
-        bottom: 0,
-      },
+      rect: new DOMRect(0, 0, 0, 0),
     };
   },
 });
