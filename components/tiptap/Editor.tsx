@@ -34,8 +34,10 @@ import { emojiSuggestion } from "./extensions/EmojiSuggestion";
 import { ImageBlock } from "./extensions/ImageBlock";
 import { ImageUpload } from "./extensions/ImageUpload";
 import { TrailingNode } from "./extensions/TrailingNode";
+import { CodeBlock } from "./extensions/CodeBlock";
 
 const extensions = [
+  CodeBlock,
   TrailingNode,
   ImageBlock,
   ImageUpload,
@@ -80,6 +82,8 @@ const extensions = [
   }),
   TaskList,
   StarterKit.configure({
+    codeBlock: false,
+    blockquote: false,
     bulletList: {
       keepMarks: true,
       keepAttributes: false,
