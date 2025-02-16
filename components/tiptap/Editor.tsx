@@ -35,8 +35,12 @@ import { ImageBlock } from "./extensions/ImageBlock";
 import { ImageUpload } from "./extensions/ImageUpload";
 import { TrailingNode } from "./extensions/TrailingNode";
 import { CodeBlock } from "./extensions/CodeBlock";
-
+import { Columns, Column } from "./extensions/MultiColumn";
+import { Document } from "./extensions/Document";
 const extensions = [
+  Document,
+  Columns,
+  Column,
   CodeBlock,
   TrailingNode,
   ImageBlock,
@@ -82,6 +86,7 @@ const extensions = [
   }),
   TaskList,
   StarterKit.configure({
+    document: false,
     codeBlock: false,
     blockquote: false,
     bulletList: {

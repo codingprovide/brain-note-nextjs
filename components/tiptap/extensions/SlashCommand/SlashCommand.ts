@@ -1,3 +1,5 @@
+"use client";
+
 import { Editor, Extension } from "@tiptap/core";
 import { ReactRenderer } from "@tiptap/react";
 import Suggestion, {
@@ -95,26 +97,15 @@ export const SlashCommand = Extension.create({
         command: ({
           editor,
           props,
+          range,
         }: {
           editor: Editor;
           props: SlashCommandAction;
+          range: { from: number; to: number };
         }) => {
-          const { view, state } = editor;
-          const { $head, $from } = view.state.selection;
-
-          const end = $from.pos;
-          const from = $head?.nodeBefore
-            ? end -
-              ($head.nodeBefore.text?.substring(
-                $head.nodeBefore.text.indexOf("/")
-              ).length ?? 0)
-            : $from.start();
-
-          const tr = state.tr.deleteRange(from, end);
-          view.dispatch(tr);
-
+          editor.chain().deleteRange({ from: range.from, to: range.to }).run();
           props.action(editor);
-          view.focus();
+          editor.commands.focus();
         },
         items: ({ query }: { query: string }) => {
           // 過濾符合查詢條件的指令
@@ -280,7 +271,19 @@ export const SlashCommand = Extension.create({
 
   addStorage() {
     return {
-      rect: new DOMRect(0, 0, 0, 0),
+      rect:
+        typeof DOMRect !== "undefined"
+          ? new DOMRect(0, 0, 0, 0)
+          : {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+            },
     };
   },
 });
