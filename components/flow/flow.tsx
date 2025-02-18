@@ -16,7 +16,7 @@ import EditorNodeType from "./EditorNodeType";
 // import DrawNodeType from "./DrawNodeType";
 import "@xyflow/react/dist/style.css";
 import { v4 as uuid } from "uuid";
-import { Button } from "../ui/Button";
+import { Button } from "@/components/ui/button";
 import { EditorNodePropsType } from "@/types/types";
 const proOptions = { hideAttribution: true };
 

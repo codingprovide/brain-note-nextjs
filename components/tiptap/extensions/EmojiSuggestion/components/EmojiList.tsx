@@ -9,7 +9,7 @@ import React, {
   useState,
 } from "react";
 
-import { Button } from "@/components/ui/Button/Button";
+import { Button } from "@/components/ui/tiptap-ui/Button/Button";
 import { Panel } from "@/components/ui/Panel/index (1)";
 import { EmojiListProps } from "../types";
 import { SuggestionKeyDownProps } from "@tiptap/suggestion";
