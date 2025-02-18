@@ -4,9 +4,9 @@ import { sticky } from "tippy.js";
 import { v4 as uuid } from "uuid";
 
 import { getRenderContainer } from "@/lib/utils/getRenderContainer";
-import { Toolbar } from "@/components/ui/Toolbar";
+import { Toolbar } from "@/components/ui/tiptap-ui/Toolbar";
 import { ColumnLayout } from "../Columns";
-import { Icon } from "@/components/ui/Icon";
+import { Icon } from "@/components/ui/tiptap-ui/Icon";
 import { Editor } from "@tiptap/react";
 
 export interface MenuProps {

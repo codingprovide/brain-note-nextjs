@@ -1,10 +1,10 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react";
 import React, { useCallback, ReactElement } from "react";
-import * as PopoverMenu from "@/components/ui/PopoverMenu";
+import * as PopoverMenu from "@/components/ui/tiptap-ui/PopoverMenu";
 
-import { Toolbar } from "@/components/ui/Toolbar";
+import { Toolbar } from "@/components/ui/tiptap-ui/Toolbar";
 import { isRowGripSelected } from "./utils";
-import { Icon } from "@/components/ui/Icon";
+import { Icon } from "@/components/ui/tiptap-ui/Icon";
 import { Editor } from "@tiptap/react";
 import { Editor as CoreEditor } from "@tiptap/core";
 import { EditorState } from "@tiptap/pm/state";

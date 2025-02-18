@@ -2,8 +2,8 @@ import * as Popover from "@radix-ui/react-popover";
 import { cn } from "@/lib/utils";
 import { icons } from "lucide-react";
 import { forwardRef } from "react";
-import { Surface } from "./Surface";
-import { Toolbar } from "./Toolbar";
+import { Surface } from "@/components/ui/tiptap-ui/Surface";
+import { Toolbar } from "@/components/ui/tiptap-ui/Toolbar";
 
 export const Trigger = Popover.Trigger;
 export const Portal = Popover.Portal;

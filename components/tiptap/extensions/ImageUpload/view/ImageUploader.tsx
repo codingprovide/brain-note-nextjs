@@ -1,7 +1,7 @@
-import { Spinner } from "@/components/ui/Spinner";
+import { Spinner } from "@/components/ui/tiptap-ui/Spinner";
 import { useDropZone, useFileUpload, useUploader } from "./hooks";
 import { Button } from "@/components/ui/tiptap-ui/Button";
-import { Icon } from "@/components/ui/Icon";
+import { Icon } from "@/components/ui/tiptap-ui/Icon";
 import { cn } from "@/lib/utils";
 import { ChangeEvent, useCallback } from "react";
 

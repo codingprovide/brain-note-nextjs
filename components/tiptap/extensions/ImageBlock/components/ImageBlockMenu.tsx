@@ -3,8 +3,8 @@ import React, { useCallback, useRef, ReactElement } from "react";
 import { Instance, sticky } from "tippy.js";
 import { v4 as uuid } from "uuid";
 
-import { Toolbar } from "@/components/ui/Toolbar";
-import { Icon } from "@/components/ui/Icon";
+import { Toolbar } from "@/components/ui/tiptap-ui/Toolbar";
+import { Icon } from "@/components/ui/tiptap-ui/Icon";
 import { ImageBlockWidth } from "./ImageBlockWidth";
 import { getRenderContainer } from "@/lib/utils/getRenderContainer";
 import { Editor } from "@tiptap/react";

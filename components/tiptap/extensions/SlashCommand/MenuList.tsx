@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { Command, MenuListProps } from "./types";
-import { Surface } from "@/components/ui/Surface";
-import { DropdownButton } from "@/components/ui/Dropdown";
-import { Icon } from "@/components/ui/Icon";
+import { Surface } from "@/components/ui/tiptap-ui/Surface";
+import { DropdownButton } from "@/components/ui/tiptap-ui/Dropdown";
+import { Icon } from "@/components/ui/tiptap-ui/Icon";
 
 // 定義 ref 的型別，必須包含 onKeyDown 方法
 
