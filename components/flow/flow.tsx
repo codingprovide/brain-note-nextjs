@@ -18,6 +18,9 @@ import "@xyflow/react/dist/style.css";
 import { v4 as uuid } from "uuid";
 import { Button } from "@/components/ui/button";
 import { EditorNodePropsType } from "@/types/types";
+import { serverSignOut } from "@/app/actions/auth";
+import { LoaderCircle } from "lucide-react";
+
 const proOptions = { hideAttribution: true };
 
 const initialNodes: EditorNodePropsType[] = [];
@@ -26,6 +29,8 @@ const initialEdges = [{ id: "e1-2", source: "1", target: "2" }];
 const nodeTypes = { editorNode: EditorNodeType };
 
 export default function Flow() {
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const edgeReconnectSuccessful = useRef(true);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -65,6 +70,7 @@ export default function Flow() {
 
   const onSave = useCallback(async () => {
     if (!rfInstance) return;
+    setIsSaving(true); // 開始 Loading
 
     try {
       const flow = rfInstance.toObject();
@@ -85,10 +91,13 @@ export default function Flow() {
       console.log("Flow saved successfully");
     } catch (error) {
       console.error("Failed to save flow:", error);
+    } finally {
+      setIsSaving(false); // 請求完成後關閉 Loading
     }
   }, [rfInstance]);
 
   const onRestore = useCallback(async () => {
+    setIsRestoring(true); // 開始 Loading
     try {
       const response = await fetch("/api/note/get");
       if (!response.ok) {
@@ -96,7 +105,6 @@ export default function Flow() {
       }
 
       const data = await response.json();
-      console.log(data);
       if (data.flowData) {
         const flow = data.flowData;
         const { x = 0, y = 0, zoom = 1 } = flow.viewport;
@@ -107,6 +115,8 @@ export default function Flow() {
       }
     } catch (error) {
       console.error("Failed to load flow:", error);
+    } finally {
+      setIsRestoring(false); // 請求完成後關閉 Loading
     }
   }, [setNodes, setEdges, setViewport]);
 
@@ -160,12 +170,24 @@ export default function Flow() {
         onReconnect={onReconnect}
         onReconnectStart={onReconnectStart}
         onReconnectEnd={onReconnectEnd}
+        panOnScroll
       >
         <Controls />
         <MiniMap />
         <Panel position="top-right">
-          <Button onClick={onSave}>save</Button>
-          <Button onClick={onRestore}>restore</Button>
+          <Button onClick={onSave} disabled={isSaving}>
+            {isSaving ? (
+              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            {isSaving ? "Saving..." : "Save"}
+          </Button>
+          <Button onClick={onRestore} disabled={isRestoring}>
+            {isRestoring ? (
+              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            {isRestoring ? "Restoring..." : "Restore"}
+          </Button>
+          <Button onClick={() => serverSignOut()}>sign out</Button>
         </Panel>
       </ReactFlow>
     </div>
