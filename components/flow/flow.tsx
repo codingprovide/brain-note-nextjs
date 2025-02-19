@@ -24,7 +24,6 @@ const initialNodes: EditorNodePropsType[] = [];
 const initialEdges = [{ id: "e1-2", source: "1", target: "2" }];
 
 const nodeTypes = { editorNode: EditorNodeType };
-const flowKey = "example-flow";
 
 export default function Flow() {
   const edgeReconnectSuccessful = useRef(true);
@@ -64,28 +63,52 @@ export default function Flow() {
     [setEdges]
   );
 
-  const onSave = useCallback(() => {
-    if (rfInstance) {
+  const onSave = useCallback(async () => {
+    if (!rfInstance) return;
+
+    try {
       const flow = rfInstance.toObject();
-      localStorage.setItem(flowKey, JSON.stringify(flow));
+      const response = await fetch("/api/note/save", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          flowData: flow, // 存入 Prisma `Json` 字段
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
+
+      console.log("Flow saved successfully");
+    } catch (error) {
+      console.error("Failed to save flow:", error);
     }
   }, [rfInstance]);
 
-  const onRestore = useCallback(() => {
-    const restoreFlow = async () => {
-      const stored = localStorage.getItem(flowKey);
-      const flow = stored ? JSON.parse(stored) : null;
+  const onRestore = useCallback(async () => {
+    try {
+      const response = await fetch("/api/note/get");
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
 
-      if (flow) {
+      const data = await response.json();
+      console.log(data);
+      if (data.flowData) {
+        const flow = data.flowData;
         const { x = 0, y = 0, zoom = 1 } = flow.viewport;
+
         setNodes(flow.nodes || []);
         setEdges(flow.edges || []);
         setViewport({ x, y, zoom });
       }
-    };
-
-    restoreFlow();
-  }, [setNodes, setViewport, setEdges]);
+    } catch (error) {
+      console.error("Failed to load flow:", error);
+    }
+  }, [setNodes, setEdges, setViewport]);
 
   //當滑鼠連續點擊兩次新增節點
   const handleAddNode = (
