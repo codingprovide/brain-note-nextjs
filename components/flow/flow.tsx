@@ -135,6 +135,7 @@ export default function Flow() {
         position: screenToFlowPosition({ x: clientX, y: clientY }),
         data: {
           content: undefined,
+          html: undefined,
         },
         type: "editorNode",
       };

@@ -1,24 +1,18 @@
 // src/stores/editor-store.ts
 import { createStore } from "zustand/vanilla";
 
-export type EditorState = {
+interface CreateEditorStoreType {
   fontSize: string;
-};
-
-export type EditorActions = {
+  isEditable: boolean;
   setFontSize: (size: string) => void;
-};
+  setIsEditable: (boolean: boolean) => void;
+}
 
-export type EditorStore = EditorState & EditorActions;
-
-export const defaultEditorState: EditorState = {
-  fontSize: "16", // 默认字体大小（这里只存数值，不含单位）
-};
-
-export const createEditorStore = (
-  initState: EditorState = defaultEditorState
-) =>
-  createStore<EditorStore>()((set) => ({
-    ...initState,
-    setFontSize: (size: string) => set({ fontSize: size }),
-  }));
+export const createEditorStore = createStore<CreateEditorStoreType>()(
+  (set) => ({
+    fontSize: "16",
+    isEditable: false,
+    setFontSize: (size) => set(() => ({ fontSize: size })),
+    setIsEditable: (boolean) => set(() => ({ isEditable: boolean })),
+  })
+);

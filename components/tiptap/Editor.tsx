@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import { useEffect } from "react";
 import { Color } from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
 import { EditorProvider, JSONContent } from "@tiptap/react";
@@ -37,6 +37,8 @@ import { TrailingNode } from "./extensions/TrailingNode";
 import { CodeBlock } from "./extensions/CodeBlock";
 import { Columns, Column } from "./extensions/MultiColumn";
 import { Document } from "./extensions/Document";
+import { useCurrentEditor } from "@tiptap/react";
+
 const extensions = [
   Document,
   Columns,
@@ -190,16 +192,28 @@ export default function Editor({
   className,
   data,
   onContentChange,
+  isEditable,
 }: {
   className: string;
   data: { content: JSONContent | undefined };
-  onContentChange: (content: JSONContent) => void;
+  onContentChange: (content: JSONContent, html: string) => void;
+  isEditable: boolean;
 }) {
   const parsedContent = data.content || "";
+  const { editor } = useCurrentEditor();
+
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(isEditable);
+    }
+  }, [isEditable, editor]);
+
   return (
     <EditorProvider
       content={parsedContent}
-      onUpdate={({ editor }) => onContentChange(editor.getJSON())}
+      onUpdate={({ editor }) => {
+        onContentChange(editor.getJSON(), editor.getHTML());
+      }}
       slotBefore={<BubbleMenu />}
       extensions={extensions}
       editorProps={{

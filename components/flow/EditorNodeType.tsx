@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { memo, useCallback, useState, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { useReactFlow, NodeResizer, useNodeId } from "@xyflow/react";
 import { Trash2 } from "lucide-react";
@@ -15,6 +15,7 @@ import {
 import Editor from "../tiptap/Editor";
 import { JSONContent } from "@tiptap/react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import RenderNodeContent from "@/components/ui/render-note-content";
 
 // Extracted constants for shared styles
 const cardStyle = { minWidth: 200, minHeight: 200 };
@@ -39,7 +40,7 @@ const nodeResizerHandleStyle = {
 
 interface EditorNodeTypeProps {
   isConnectable: boolean;
-  data: { content: JSONContent | undefined };
+  data: { content: JSONContent | undefined; html: string | undefined };
   selected: boolean;
 }
 
@@ -48,11 +49,11 @@ const EditorNodeType = memo(function EditorNodeType({
   data,
   selected,
 }: EditorNodeTypeProps) {
-  const [isEditor, setIsEditor] = useState(false);
   const nodeId = useNodeId();
   const { setNodes } = useReactFlow();
-  const nodeRef = useRef<HTMLDivElement>(null);
 
+  const [isEditable, setIsEditable] = useState(false);
+  const nodeRef = useRef<HTMLDivElement>(null);
   // Close editor if click occurs outside the node
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -61,13 +62,13 @@ const EditorNodeType = memo(function EditorNodeType({
         event.target instanceof HTMLElement &&
         !nodeRef.current.contains(event.target)
       ) {
-        setIsEditor(false);
+        setIsEditable(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [setIsEditable]);
 
   // Delete current node
   const handleDeleteNode = useCallback(() => {
@@ -76,11 +77,11 @@ const EditorNodeType = memo(function EditorNodeType({
 
   // Update node content on editor change
   const handleContentChange = useCallback(
-    (content: JSONContent | undefined) => {
+    (content: JSONContent | undefined, html: string | undefined) => {
       setNodes((nodes) =>
         nodes.map((node) =>
           node.id === nodeId
-            ? { ...node, data: { ...node.data, content } }
+            ? { ...node, data: { ...node.data, content, html } }
             : node
         )
       );
@@ -93,9 +94,9 @@ const EditorNodeType = memo(function EditorNodeType({
       style={cardStyle}
       className={clsx(
         "w-full h-full relative bg-white flex flex-col border-solid border-4 border-gray-400",
-        { nodrag: isEditor }
+        { nodrag: isEditable }
       )}
-      onDoubleClick={() => setIsEditor(true)}
+      onDoubleClick={() => setIsEditable(true)}
       ref={nodeRef}
     >
       {/* Header with Delete Button */}
@@ -145,20 +146,40 @@ const EditorNodeType = memo(function EditorNodeType({
         />
 
         {/* Editor */}
-        <Editor
-          className={clsx(
-            // Base styles
-            "bg-white min-h-full p-5 focus:outline-none",
 
-            // Typography defaults
-            "prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl",
+        {isEditable && (
+          <Editor
+            className={clsx(
+              // Base styles
+              "bg-white min-h-full p-5 focus:outline-none",
 
-            // Custom prose modifications
-            "prose-th:bg-black prose-strong:text-inherit prose-p:m-0"
-          )}
-          data={data}
-          onContentChange={handleContentChange}
-        />
+              // Typography defaults
+              "prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl",
+
+              // Custom prose modifications
+              "prose-th:bg-black prose-strong:text-inherit prose-p:m-0"
+            )}
+            data={data}
+            onContentChange={handleContentChange}
+            isEditable={isEditable}
+          />
+        )}
+
+        {!isEditable && (
+          <RenderNodeContent
+            className={clsx(
+              // Base styles
+              " bg-white min-h-full p-5 focus:outline-none",
+
+              // Typography defaults
+              "prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl",
+
+              // Custom prose modifications
+              "prose-th:bg-black prose-strong:text-inherit prose-p:m-0"
+            )}
+            html={data.html ?? ""}
+          />
+        )}
 
         {/* Right side connection handles */}
         <Handle
