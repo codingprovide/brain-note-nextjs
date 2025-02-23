@@ -23,23 +23,25 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
 
 export default function BubbleMenu() {
+  // 用 containerRef 儲存根元素
   const containerRef = useRef(null);
   const { editor } = useCurrentEditor();
   const [urlValure, setUrlValue] = useState("");
   const [fontSize, setFontSize] = useState("");
   const [currentSelectionFontSize, setCurrentSelectionFontSize] = useState("");
+
+  // 讓父組件可以取得 containerRef.current
+
   useEffect(() => {
     const handleSelectionChange = () => {
       const selection = window.getSelection();
       if (selection && selection.anchorNode) {
         const parentElement = selection.anchorNode.parentElement;
-        // 检查 parentElement 是否存在，以及是否在 editor 内部
         if (
           parentElement &&
           editor &&
@@ -139,20 +141,20 @@ export default function BubbleMenu() {
   ];
 
   return (
-    <div ref={containerRef}>
+    <div ref={containerRef} className="bubble-menu">
       {editor && (
         <TipTapBubbleMenu
           editor={editor}
           tippyOptions={{
             duration: 100,
             appendTo: () => document.body,
+            maxWidth: "none",
             getReferenceClientRect: () => {
               const selection = editor.state.selection;
               if (!selection || selection.empty) {
                 return new DOMRect(0, 0, 0, 0);
               }
               const rect = editor.view.coordsAtPos(selection.from);
-
               const width = rect.right - rect.left;
               const height = rect.bottom - rect.top;
               return new DOMRect(rect.left, rect.top, width, height);
@@ -161,7 +163,7 @@ export default function BubbleMenu() {
         >
           <ToggleGroup
             type="multiple"
-            className=" flex bg-white p-2 rounded-lg shadow-xl border border-gray-200 size-max justify-center items-center"
+            className="flex bg-white p-2 rounded-lg shadow-xl border border-gray-200 size-max justify-center items-center"
           >
             {BubbleMenuItem.map((item) => (
               <ToggleGroupItem
@@ -185,13 +187,13 @@ export default function BubbleMenu() {
                 <PopoverTrigger asChild>
                   <Baseline className="h-5 w-5" />
                 </PopoverTrigger>
-                <PopoverContent className="w-auto h-auto p-2 mt-5">
+                <PopoverContent className="w-auto h-auto p-2 mt-5 popover-content">
                   <div className="grid grid-cols-5 gap-1 place-items-center">
                     {Object.entries(tailwindColors).map(([colorName, shades]) =>
                       shades.map((shade, index) => (
                         <button
                           key={`${colorName}-${index}`}
-                          className=" h-5 w-5 rounded-full border border-gray-300 hover:ring-2 hover:ring-gray-400"
+                          className="h-5 w-5 rounded-full border border-gray-300 hover:ring-2 hover:ring-gray-400"
                           style={{ backgroundColor: shade }}
                           onClick={() =>
                             editor.chain().focus().setColor(shade).run()
@@ -201,7 +203,7 @@ export default function BubbleMenu() {
                     )}
                   </div>
                   <Button
-                    className=" w-full p-0 h-5"
+                    className="w-full p-0 h-5"
                     onClick={() => editor.chain().focus().unsetColor().run()}
                     variant={"outline"}
                   >
@@ -209,7 +211,6 @@ export default function BubbleMenu() {
                   </Button>
                 </PopoverContent>
               </Popover>
-              {}
             </ToggleGroupItem>
 
             <ToggleGroupItem
@@ -220,13 +221,13 @@ export default function BubbleMenu() {
                 <PopoverTrigger asChild>
                   <Highlighter className="h-5 w-5" />
                 </PopoverTrigger>
-                <PopoverContent className="w-auto h-auto p-2 mt-5">
+                <PopoverContent className="w-auto h-auto p-2 mt-5 popover-content">
                   <div className="grid grid-cols-5 gap-1 place-items-center">
                     {Object.entries(tailwindColors).map(([colorName, shades]) =>
                       shades.map((shade, index) => (
                         <button
                           key={`${colorName}-${index}`}
-                          className=" h-5 w-5 rounded-full border border-gray-300 hover:ring-2 hover:ring-gray-400"
+                          className="h-5 w-5 rounded-full border border-gray-300 hover:ring-2 hover:ring-gray-400"
                           style={{ backgroundColor: shade }}
                           onClick={() =>
                             editor
@@ -240,7 +241,7 @@ export default function BubbleMenu() {
                     )}
                   </div>
                   <Button
-                    className=" w-full p-0 h-5"
+                    className="w-full p-0 h-5"
                     onClick={() =>
                       editor.chain().focus().unsetHighlight().run()
                     }
@@ -260,7 +261,7 @@ export default function BubbleMenu() {
                 <PopoverTrigger asChild>
                   <Link className="h-5 w-5" />
                 </PopoverTrigger>
-                <PopoverContent className="w-auto h-auto p-2 mt-5">
+                <PopoverContent className="w-auto h-auto p-2 mt-5 popover-content">
                   <div className="grid gap-1">
                     <Input
                       placeholder="https://example.com"
@@ -268,7 +269,7 @@ export default function BubbleMenu() {
                       onChange={(e) => setUrlValue(e.target.value)}
                     />
                     <Button
-                      className=" w-full p-0 h-6 mt-1"
+                      className="w-full p-0 h-6 mt-1"
                       onClick={() =>
                         editor
                           .chain()
@@ -281,7 +282,7 @@ export default function BubbleMenu() {
                       set url
                     </Button>
                     <Button
-                      className=" w-full p-0 h-6 "
+                      className="w-full p-0 h-6"
                       onClick={() => editor.chain().focus().unsetLink().run()}
                       variant={"outline"}
                     >
@@ -296,24 +297,24 @@ export default function BubbleMenu() {
               <Popover>
                 <div className="flex items-center">
                   <div
-                    className=" hover:bg-gray-200 p-1 rounded-md"
+                    className="hover:bg-gray-200 p-1 rounded-md"
                     onClick={increaseFontSize}
                   >
-                    <Plus className="" />
+                    <Plus />
                   </div>
                   <PopoverTrigger asChild>
-                    <div className=" border border-gray-300 p-1 px-2 mx-2 rounded-md hover:bg-gray-200">
+                    <div className="border border-gray-300 p-1 px-2 mx-2 rounded-md hover:bg-gray-200">
                       {fontSize || currentSelectionFontSize}
                     </div>
                   </PopoverTrigger>
                   <div
-                    className=" hover:bg-gray-200 p-1 rounded-md"
+                    className="hover:bg-gray-200 p-1 rounded-md"
                     onClick={decreaseFontSize}
                   >
-                    <Minus className="" />
+                    <Minus />
                   </div>
                 </div>
-                <PopoverContent className="w-auto h-auto p-2 mt-5">
+                <PopoverContent className="w-auto h-auto p-2 mt-5 popover-content">
                   <div className="grid gap-1">
                     <Input
                       placeholder="input font size"
@@ -321,7 +322,7 @@ export default function BubbleMenu() {
                       onChange={(e) => setFontSize(e.target.value)}
                     />
                     <Button
-                      className=" w-full p-0 h-6 mt-1"
+                      className="w-full p-0 h-6 mt-1"
                       onClick={() => {
                         if (fontSize) {
                           editor.chain().focus().setFontSize(fontSize).run();
@@ -332,7 +333,7 @@ export default function BubbleMenu() {
                       set font size
                     </Button>
                     <Button
-                      className=" w-full p-0 h-6 "
+                      className="w-full p-0 h-6"
                       onClick={() =>
                         editor.chain().focus().unsetFontSize().run()
                       }

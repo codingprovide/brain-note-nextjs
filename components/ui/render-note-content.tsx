@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import parse from "html-react-parser";
 
 export default function RenderNodeContent({
@@ -7,5 +8,6 @@ export default function RenderNodeContent({
   className: string;
   html: string;
 }) {
-  return <div className={className}>{parse(html)}</div>;
+  const parsedContent = useMemo(() => parse(html), [html]);
+  return <div className={className}>{parsedContent}</div>;
 }

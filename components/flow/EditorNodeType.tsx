@@ -15,10 +15,15 @@ import {
 import Editor from "../tiptap/Editor";
 import { JSONContent } from "@tiptap/react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import RenderNodeContent from "@/components/ui/render-note-content";
+import RenderNodeContent from "../ui/render-note-content";
 
-// Extracted constants for shared styles
-const cardStyle = { minWidth: 200, minHeight: 200 };
+// 共享樣式常數
+const cardStyle = {
+  minWidth: 200,
+  minHeight: 200,
+  // 透過 will-change 提升硬體加速效果
+  willChange: "transform",
+};
 
 const handleStyle = {
   width: 8,
@@ -51,16 +56,18 @@ const EditorNodeType = memo(function EditorNodeType({
 }: EditorNodeTypeProps) {
   const nodeId = useNodeId();
   const { setNodes } = useReactFlow();
-
   const [isEditable, setIsEditable] = useState(false);
   const nodeRef = useRef<HTMLDivElement>(null);
-  // Close editor if click occurs outside the node
+
+  // 當點擊節點外部時關閉編輯器
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         nodeRef.current &&
         event.target instanceof HTMLElement &&
-        !nodeRef.current.contains(event.target)
+        !nodeRef.current.contains(event.target) &&
+        !event.target.closest(".popover-content") &&
+        !event.target.closest(".tippy-box")
       ) {
         setIsEditable(false);
       }
@@ -68,14 +75,14 @@ const EditorNodeType = memo(function EditorNodeType({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [setIsEditable]);
+  }, []);
 
-  // Delete current node
+  // 刪除節點
   const handleDeleteNode = useCallback(() => {
     setNodes((nodes) => nodes.filter((node) => node.id !== nodeId));
   }, [nodeId, setNodes]);
 
-  // Update node content on editor change
+  // 編輯器內容改變時更新節點資料
   const handleContentChange = useCallback(
     (content: JSONContent | undefined, html: string | undefined) => {
       setNodes((nodes) =>
@@ -119,8 +126,8 @@ const EditorNodeType = memo(function EditorNodeType({
         </TooltipProvider>
       </CardHeader>
 
-      {/* Content area with Node Resizer, Editor, and connection Handles */}
-      <CardContent className="overflow-hidden">
+      {/* Content area with Node Resizer, Editor / Render content, and connection Handles */}
+      <CardContent className="overflow-hidden ">
         <NodeResizer
           minWidth={200}
           minHeight={200}
@@ -129,7 +136,7 @@ const EditorNodeType = memo(function EditorNodeType({
           isVisible={selected}
         />
 
-        {/* Left side connection handles */}
+        {/* 左側連接點 */}
         <Handle
           id="target-left"
           type="target"
@@ -145,43 +152,30 @@ const EditorNodeType = memo(function EditorNodeType({
           style={handleStyle}
         />
 
-        {/* Editor */}
-
-        {isEditable && (
+        {/* 編輯器或靜態內容 */}
+        {isEditable ? (
           <Editor
             className={clsx(
-              // Base styles
               "bg-white min-h-full p-5 focus:outline-none",
-
-              // Typography defaults
               "prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl",
-
-              // Custom prose modifications
               "prose-th:bg-black prose-strong:text-inherit prose-p:m-0"
             )}
             data={data}
             onContentChange={handleContentChange}
             isEditable={isEditable}
           />
-        )}
-
-        {!isEditable && (
+        ) : (
           <RenderNodeContent
             className={clsx(
-              // Base styles
-              " bg-white min-h-full p-5 focus:outline-none",
-
-              // Typography defaults
+              "bg-white min-h-full p-5 focus:outline-none",
               "prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl",
-
-              // Custom prose modifications
               "prose-th:bg-black prose-strong:text-inherit prose-p:m-0"
             )}
             html={data.html ?? ""}
           />
         )}
 
-        {/* Right side connection handles */}
+        {/* 右側連接點 */}
         <Handle
           id="source-right"
           type="source"
@@ -197,7 +191,7 @@ const EditorNodeType = memo(function EditorNodeType({
           style={handleStyle}
         />
 
-        {/* Top connection handles */}
+        {/* 上方連接點 */}
         <Handle
           id="source-top"
           type="source"
@@ -213,7 +207,7 @@ const EditorNodeType = memo(function EditorNodeType({
           style={handleStyle}
         />
 
-        {/* Bottom connection handles */}
+        {/* 下方連接點 */}
         <Handle
           id="source-bottom"
           type="source"
