@@ -21,8 +21,6 @@ import RenderNodeContent from "../ui/render-note-content";
 const cardStyle = {
   minWidth: 200,
   minHeight: 200,
-  // 透過 will-change 提升硬體加速效果
-  willChange: "transform",
 };
 
 const handleStyle = {
@@ -47,35 +45,29 @@ interface EditorNodeTypeProps {
   isConnectable: boolean;
   data: { content: JSONContent | undefined; html: string | undefined };
   selected: boolean;
+  dragging: boolean;
 }
 
 const EditorNodeType = memo(function EditorNodeType({
   isConnectable,
   data,
   selected,
+  dragging,
 }: EditorNodeTypeProps) {
   const nodeId = useNodeId();
   const { setNodes } = useReactFlow();
   const [isEditable, setIsEditable] = useState(false);
   const nodeRef = useRef<HTMLDivElement>(null);
 
-  // 當點擊節點外部時關閉編輯器
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        nodeRef.current &&
-        event.target instanceof HTMLElement &&
-        !nodeRef.current.contains(event.target) &&
-        !event.target.closest(".popover-content") &&
-        !event.target.closest(".tippy-box")
-      ) {
-        setIsEditable(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    if (dragging) {
+      setIsEditable(false);
+    } else if (selected) {
+      setIsEditable(true);
+    } else {
+      setIsEditable(false);
+    }
+  }, [dragging, selected]);
 
   // 刪除節點
   const handleDeleteNode = useCallback(() => {
@@ -96,6 +88,9 @@ const EditorNodeType = memo(function EditorNodeType({
     [nodeId, setNodes]
   );
 
+  // when click other node , the editor not close
+  // when edior is open , drag the node editor should be close, when drag end, editor should be open
+
   return (
     <Card
       style={cardStyle}
@@ -103,7 +98,6 @@ const EditorNodeType = memo(function EditorNodeType({
         "w-full h-full relative bg-white flex flex-col border-solid border-4 border-gray-400",
         { nodrag: isEditable }
       )}
-      onDoubleClick={() => setIsEditable(true)}
       ref={nodeRef}
     >
       {/* Header with Delete Button */}
@@ -127,7 +121,7 @@ const EditorNodeType = memo(function EditorNodeType({
       </CardHeader>
 
       {/* Content area with Node Resizer, Editor / Render content, and connection Handles */}
-      <CardContent className="overflow-hidden ">
+      <CardContent className="overflow-hidden p-3 ">
         <NodeResizer
           minWidth={200}
           minHeight={200}
@@ -156,7 +150,7 @@ const EditorNodeType = memo(function EditorNodeType({
         {isEditable ? (
           <Editor
             className={clsx(
-              "bg-white min-h-full p-5 focus:outline-none",
+              "bg-white min-h-full focus:outline-none",
               "prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl",
               "prose-th:bg-black prose-strong:text-inherit prose-p:m-0"
             )}
@@ -167,7 +161,7 @@ const EditorNodeType = memo(function EditorNodeType({
         ) : (
           <RenderNodeContent
             className={clsx(
-              "bg-white min-h-full p-5 focus:outline-none",
+              "bg-white min-h-full focus:outline-none",
               "prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl",
               "prose-th:bg-black prose-strong:text-inherit prose-p:m-0"
             )}
