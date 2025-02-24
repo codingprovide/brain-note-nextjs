@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Handle, Position } from "@xyflow/react";
+import { Handle, HandleType, Position } from "@xyflow/react";
 import { useReactFlow, NodeResizer, useNodeId } from "@xyflow/react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,30 +23,29 @@ const cardStyle = {
   minHeight: 200,
 };
 
-const handleStyle = {
-  width: 8,
-  height: 8,
-  borderStyle: "solid",
-  borderWidth: 1,
-  borderColor: "#cbd5e1",
-  backgroundColor: "white",
-};
-
-const nodeResizerLineStyle = { stroke: "#ccc", strokeWidth: 5 };
-const nodeResizerHandleStyle = {
-  width: 10,
-  height: 10,
-  fill: "#fff",
-  stroke: "#ccc",
-  cursor: "nwse-resize",
-};
-
 interface EditorNodeTypeProps {
   isConnectable: boolean;
   data: { content: JSONContent | undefined; html: string | undefined };
   selected: boolean;
   dragging: boolean;
 }
+
+interface handleProps {
+  id: string;
+  position: Position;
+  type: HandleType;
+}
+
+const handles: handleProps[] = [
+  { id: "source-left", position: Position.Left, type: "source" },
+  { id: "target-left", position: Position.Left, type: "target" },
+  { id: "source-right", position: Position.Right, type: "source" },
+  { id: "target-right", position: Position.Right, type: "target" },
+  { id: "source-top", position: Position.Top, type: "source" },
+  { id: "target-top", position: Position.Top, type: "target" },
+  { id: "source-bottom", position: Position.Bottom, type: "source" },
+  { id: "target-bottom", position: Position.Bottom, type: "target" },
+];
 
 const EditorNodeType = memo(function EditorNodeType({
   isConnectable,
@@ -95,13 +94,14 @@ const EditorNodeType = memo(function EditorNodeType({
     <Card
       style={cardStyle}
       className={clsx(
-        "w-full h-full relative bg-white flex flex-col border-solid border-4 border-gray-400",
-        { nodrag: isEditable }
+        "w-full h-full relative bg-white flex flex-col border-solid border border-gray-400",
+        { nodrag: isEditable },
+        { "border-solid border-2 border-gray-700": selected }
       )}
       ref={nodeRef}
     >
       {/* Header with Delete Button */}
-      <CardHeader className="w-full p-1 hover:bg-gray-100 flex items-center justify-between">
+      <CardHeader className="w-full p-1 rounded-t-xl  hover:bg-gray-100 flex items-center justify-between">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -125,26 +125,21 @@ const EditorNodeType = memo(function EditorNodeType({
         <NodeResizer
           minWidth={200}
           minHeight={200}
-          lineStyle={nodeResizerLineStyle}
-          handleStyle={nodeResizerHandleStyle}
           isVisible={selected}
+          lineClassName="border border-[0.5px] border-transparent"
+          handleClassName="bg-transparent border-transparent"
         />
 
-        {/* 左側連接點 */}
-        <Handle
-          id="target-left"
-          type="target"
-          position={Position.Left}
-          isConnectable={isConnectable}
-          style={handleStyle}
-        />
-        <Handle
-          id="source-left"
-          type="source"
-          position={Position.Left}
-          isConnectable={isConnectable}
-          style={handleStyle}
-        />
+        {handles.map((handle) => (
+          <Handle
+            key={handle.id}
+            id={handle.id}
+            type={handle.type}
+            position={handle.position}
+            isConnectable={isConnectable}
+            className="w-2 h-2 border border-[#cbd5e1] bg-white hover:w-6 hover:h-6"
+          />
+        ))}
 
         {/* 編輯器或靜態內容 */}
         {isEditable ? (
@@ -168,54 +163,6 @@ const EditorNodeType = memo(function EditorNodeType({
             html={data.html ?? ""}
           />
         )}
-
-        {/* 右側連接點 */}
-        <Handle
-          id="source-right"
-          type="source"
-          position={Position.Right}
-          isConnectable={isConnectable}
-          style={handleStyle}
-        />
-        <Handle
-          id="target-right"
-          type="target"
-          position={Position.Right}
-          isConnectable={isConnectable}
-          style={handleStyle}
-        />
-
-        {/* 上方連接點 */}
-        <Handle
-          id="source-top"
-          type="source"
-          position={Position.Top}
-          isConnectable={isConnectable}
-          style={handleStyle}
-        />
-        <Handle
-          id="target-top"
-          type="target"
-          position={Position.Top}
-          isConnectable={isConnectable}
-          style={handleStyle}
-        />
-
-        {/* 下方連接點 */}
-        <Handle
-          id="source-bottom"
-          type="source"
-          position={Position.Bottom}
-          isConnectable={isConnectable}
-          style={handleStyle}
-        />
-        <Handle
-          id="target-bottom"
-          type="target"
-          position={Position.Bottom}
-          isConnectable={isConnectable}
-          style={handleStyle}
-        />
       </CardContent>
     </Card>
   );
