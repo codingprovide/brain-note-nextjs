@@ -20,24 +20,43 @@ import { Button } from "@/components/ui/button";
 import { EditorNodePropsType } from "@/types/types";
 import { serverSignOut } from "@/app/actions/auth";
 import { LoaderCircle } from "lucide-react";
+import FlowContexMenu from "./FlowContexMenu";
+import HandWritingCanvas from "./HandwritingCanvas";
+import { Toolbar } from "../ui/flow-ui/toolbar";
 
 const proOptions = { hideAttribution: true };
 
 const initialNodes: EditorNodePropsType[] = [];
 const initialEdges = [{ id: "e1-2", source: "1", target: "2" }];
 
-const nodeTypes = { editorNode: EditorNodeType };
+const nodeTypes = { editorNode: EditorNodeType, canvasNode: HandWritingCanvas };
+
+interface PanMenu {
+  top?: number;
+  left?: number;
+  right?: number;
+  bottom?: number;
+}
 
 export default function Flow() {
   const [isSaving, setIsSaving] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const edgeReconnectSuccessful = useRef(true);
+  const [panMenu, setPanMenu] = useState<PanMenu | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance<
     EditorNodePropsType,
     { id: string; source: string; target: string }
   > | null>(null);
+
+  const flowRef = useRef<HTMLDivElement>(null);
+  const [activeTool, setActiveTool] = useState<string | undefined>(undefined);
+
+  const handleToolSelect = (tool: string) => {
+    setActiveTool(tool === activeTool ? undefined : tool);
+    console.log(`Selected tool: ${tool}`, activeTool);
+  };
 
   const { screenToFlowPosition, setViewport } = useReactFlow();
   const onConnect = useCallback(
@@ -144,9 +163,37 @@ export default function Flow() {
     }
   };
 
+  const onPaneContextMenu = useCallback(
+    (event: MouseEvent | React.MouseEvent<Element, MouseEvent>) => {
+      event.preventDefault();
+      if (flowRef.current) {
+        const pane = flowRef.current.getBoundingClientRect();
+        setPanMenu({
+          top: event.clientY < pane.height - 200 ? event.clientY : undefined,
+          left: event.clientX < pane.width - 200 ? event.clientX : undefined,
+          right:
+            event.clientX >= pane.width - 200
+              ? pane.width - event.clientX
+              : undefined,
+          bottom:
+            event.clientY >= pane.height - 200
+              ? pane.height - event.clientY
+              : undefined,
+        });
+      }
+    },
+    [setPanMenu]
+  );
+
+  const onPaneClick = useCallback(() => setPanMenu(null), [setPanMenu]);
+
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
+    <div
+      style={{ width: "100vw", height: "100vh" }}
+      onContextMenu={(e) => e.preventDefault()} // 禁用右鍵點擊事件
+    >
       <ReactFlow
+        ref={flowRef}
         onInit={(flowInstance) => setRfInstance(flowInstance)}
         nodes={nodes}
         edges={edges}
@@ -172,6 +219,8 @@ export default function Flow() {
         onReconnectStart={onReconnectStart}
         onReconnectEnd={onReconnectEnd}
         panOnScroll
+        onPaneClick={onPaneClick}
+        onPaneContextMenu={onPaneContextMenu}
       >
         <Controls />
         <MiniMap />
@@ -189,6 +238,14 @@ export default function Flow() {
             {isRestoring ? "Restoring..." : "Restore"}
           </Button>
           <Button onClick={() => serverSignOut()}>sign out</Button>
+        </Panel>
+        {panMenu && <FlowContexMenu onClick={onPaneClick} {...panMenu} />}
+        <Panel position="bottom-center">
+          <Toolbar
+            onToolSelect={handleToolSelect}
+            activeTool={activeTool}
+            className="inline-flex w-auto"
+          />
         </Panel>
       </ReactFlow>
     </div>
