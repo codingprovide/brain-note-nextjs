@@ -9,6 +9,7 @@ import {
 import { MousePointer2, MoveUpRight, Pen } from "lucide-react";
 
 import { RxText } from "react-icons/rx";
+import { useToolBarStore, ToolBarState } from "@/store/tool-bar-store";
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
@@ -45,15 +46,14 @@ const ToolbarButton = ({
 
 interface ToolbarProps {
   className?: string;
-  onToolSelect?: (tool: string) => void;
-  activeTool?: string;
 }
 
-export function Toolbar({ className, onToolSelect, activeTool }: ToolbarProps) {
+export function Toolbar({ className }: ToolbarProps) {
+  const { activeTool, setActiveTool } = useToolBarStore<ToolBarState>(
+    (state) => state
+  );
   const handleToolClick = (tool: string) => {
-    if (onToolSelect) {
-      onToolSelect(tool);
-    }
+    setActiveTool(tool);
   };
   <Pen />;
   return (

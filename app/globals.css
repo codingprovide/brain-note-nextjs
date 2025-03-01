@@ -95,8 +95,6 @@ body {
   @apply overflow-auto;
 }
 
-
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -104,4 +102,12 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.react-flow.cursor-text .react-flow__pane {
+  cursor: text !important;
+}
+
+.react-flow.cursor-crosshair .react-flow__pane {
+  cursor: crosshair !important;
 }

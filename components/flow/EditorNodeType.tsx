@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Handle, HandleType, Position } from "@xyflow/react";
 import { useReactFlow, NodeResizer, useNodeId } from "@xyflow/react";
-import { Trash2, Brush } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -53,15 +53,9 @@ const EditorNodeType = memo(function EditorNodeType({
   selected,
   dragging,
 }: EditorNodeTypeProps) {
-  const EditorModes = {
-    TEXT: "text",
-    DRAW: "draw",
-  };
-
   const nodeId = useNodeId();
   const { setNodes } = useReactFlow();
   const [isEditable, setIsEditable] = useState(false);
-  const [editorMode, setEditorMode] = useState(EditorModes.TEXT);
 
   const nodeRef = useRef<HTMLDivElement>(null);
 
@@ -118,22 +112,6 @@ const EditorNodeType = memo(function EditorNodeType({
                 onClick={handleDeleteNode}
               >
                 <Trash2 className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Delete the Node</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                className="p-1 w-8 h-8"
-                onClick={handleDeleteNode}
-              >
-                <Brush className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
