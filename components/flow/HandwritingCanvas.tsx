@@ -3,13 +3,11 @@ import { Stage, Layer, Line } from "react-konva";
 import { getStroke } from "perfect-freehand";
 
 const options = {
-  size: 15,
-  thinning: 0.5,
-  smoothing: 0.6,
-  streamline: 0.5,
-  easing: (t) => t,
-  start: { taper: 0, easing: (t) => t, cap: true },
-  end: { taper: 100, easing: (t) => t, cap: true },
+  size: 5,
+  thinning: 0.2,
+  smoothing: 0.99,
+  streamline: 0.99,
+  easing: (t) => Math.sin(t * Math.PI * 0.5),
 };
 
 export default function HandWritingCanvas() {
