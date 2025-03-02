@@ -8,46 +8,77 @@ const options = {
   smoothing: 0.6,
   streamline: 0.5,
   easing: (t) => t,
-  start: {
-    taper: 0,
-    easing: (t) => t,
-    cap: true,
-  },
-  end: {
-    taper: 100,
-    easing: (t) => t,
-    cap: true,
-  },
+  start: { taper: 0, easing: (t) => t, cap: true },
+  end: { taper: 100, easing: (t) => t, cap: true },
 };
 
 export default function HandWritingCanvas() {
-  const [lines, setLines] = useState([]);
-  const [points, setPoints] = useState([]);
-  const [currentPoints, setCurrentPoints] = useState([]);
+  const [lines, setLines] = useState([]); // 存所有筆畫
+  const [currentPoints, setCurrentPoints] = useState([]); // 當前筆畫
+  const [selectedIndex, setSelectedIndex] = useState(null); // 選中的線條索引
+  const [startPos, setStartPos] = useState(null); // 記錄初始滑鼠位置
 
   function handlePointerDown(e) {
-    if (e.evt.buttons !== 2) return;
-    setPoints([[e.evt.offsetX, e.evt.offsetY, e.evt.pressure]]);
+    e.evt.preventDefault();
+
+    if (e.evt.buttons === 1) {
+      // 檢查是否點擊到現有的線條
+      const clickedIndex = lines.findIndex((line) => {
+        const { x, y, points } = line;
+        return points.some(([px, py]) => {
+          const dx = e.evt.offsetX - (px + x);
+          const dy = e.evt.offsetY - (py + y);
+          return Math.sqrt(dx * dx + dy * dy) < 20; // 允許誤差範圍
+        });
+      });
+
+      if (clickedIndex !== -1) {
+         console.log("ok")
+        setSelectedIndex(clickedIndex);
+        setStartPos({ x: e.evt.offsetX, y: e.evt.offsetY });
+      } else {
+        // 沒有選中任何東西，開始新畫筆
+        setCurrentPoints([[e.evt.offsetX, e.evt.offsetY, e.evt.pressure]]);
+      }
+    }
   }
 
   function handlePointerMove(e) {
-    if (e.evt.buttons !== 2) return;
-    setCurrentPoints([...currentPoints, [e.evt.offsetX, e.evt.offsetY, e.evt.pressure]]);
+    if (e.evt.buttons !== 1) return;
+
+    if (selectedIndex !== null) {
+      // **右鍵拖動選中的線條**
+      const dx = e.evt.offsetX - startPos.x;
+      const dy = e.evt.offsetY - startPos.y;
+      setStartPos({ x: e.evt.offsetX, y: e.evt.offsetY });
+
+      setLines((prevLines) => {
+        const newLines = [...prevLines];
+        newLines[selectedIndex] = {
+          ...newLines[selectedIndex],
+          x: newLines[selectedIndex].x + dx,
+          y: newLines[selectedIndex].y + dy,
+        };
+        return newLines;
+      });
+    } else {
+      // **右鍵畫圖**
+      setCurrentPoints([...currentPoints, [e.evt.offsetX, e.evt.offsetY, e.evt.pressure]]);
+    }
   }
 
   function handlePointerUp() {
-    if (currentPoints.length === 0) return;
-    setLines([...lines, currentPoints]); // 把這筆畫存入 `lines`
-    setCurrentPoints([]); // 清空 `currentPoints`
+    if (selectedIndex !== null) {
+      setSelectedIndex(null);
+    } else if (currentPoints.length > 0) {
+      setLines([...lines, { points: currentPoints, x: 0, y: 0 }]);
+      setCurrentPoints([]);
+    }
   }
 
   function handleContextMenu(e) {
-    e.evt.preventDefault(); // 禁用預設右鍵選單
+    e.evt.preventDefault();
   }
-
-  // 取得筆劃邊界
-  const stroke = getStroke(points, options);
-  const flattenedPoints = stroke.flatMap((p) => [p[0], p[1]]);
 
   return (
     <Stage
@@ -56,13 +87,13 @@ export default function HandWritingCanvas() {
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onContextMenu={handleContextMenu} // 禁止右鍵開啟瀏覽器選單
+      onContextMenu={handleContextMenu}
       style={{ touchAction: "none", border: "1px solid black" }}
     >
       <Layer>
-        {/* 畫所有已存的筆畫 */}
-        {lines.map((strokePoints, index) => {
-          const stroke = getStroke(strokePoints, options);
+        {/* 畫所有筆畫 */}
+        {lines.map((line, index) => {
+          const stroke = getStroke(line.points, options);
           const flattenedPoints = stroke.flatMap((p) => [p[0], p[1]]);
           return (
             <Line
@@ -74,11 +105,13 @@ export default function HandWritingCanvas() {
               strokeWidth={1}
               lineCap="round"
               lineJoin="round"
+              x={line.x}
+              y={line.y}
             />
           );
         })}
 
-        {/* 畫當前正在畫的筆畫 */}
+        {/* 畫當前筆畫 */}
         {currentPoints.length > 0 && (
           <Line
             points={getStroke(currentPoints, options).flatMap((p) => [p[0], p[1]])}
