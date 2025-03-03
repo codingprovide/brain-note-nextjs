@@ -32,7 +32,7 @@ export default function HandWritingCanvas() {
     e.evt.preventDefault();
 
     if (e.evt.buttons === 1) {
-      if (drawingTool === "Pen") {
+      if (drawingTool === "Move") {
         // 檢查是否點擊到已經畫出的線條
         const clickedIndex = lines.findIndex((line) => {
           if (line.tool === "Eraser") return false;
@@ -79,41 +79,44 @@ export default function HandWritingCanvas() {
   }
 
   function handlePointerUp() {
-    if (selectedIndex !== null) {
-      setSelectedIndex(null);
-    } else if (currentPoints.length > 0) {
-      if (drawingTool === "Pen") {
-        setLines((prevLines) => [
-          ...prevLines,
-          { points: currentPoints, x: 0, y: 0, tool: "Pen", color: "black" },
-        ]);
-      } else {
-        const eraserPoints = getStroke(currentPoints, eraserOptions) || [];
+  if (selectedIndex !== null) {
+    setSelectedIndex(null);
+  } 
+  // ⛔ 新增條件：Move 模式不執行刪除或新增
+  else if (currentPoints.length > 0 && drawingTool !== "Move") {
+    if (drawingTool === "Pen" || drawingTool === "Highlight") {
+      setLines((prevLines) => [
+        ...prevLines,
+        { points: currentPoints, x: 0, y: 0, tool: "Pen", color: "black" },
+      ]);
+    } else {
+      const eraserPoints = getStroke(currentPoints, eraserOptions) || [];
 
-        setLines((prevLines) => {
-          return prevLines.filter((line) => {
-            if (line.tool === "Eraser") return true;
-            
-            const linePoints = getStroke(line.points, options) || [];
+      setLines((prevLines) => {
+        return prevLines.filter((line) => {
+          if (line.tool === "Eraser") return true;
 
-            for (const linePoint of linePoints) {
-              for (const eraserPoint of eraserPoints) {
-                const dx = (linePoint[0] + line.x) - eraserPoint[0];
-                const dy = (linePoint[1] + line.y) - eraserPoint[1];
-                const distance = Math.sqrt(dx * dx + dy * dy);
+          const linePoints = getStroke(line.points, options) || [];
 
-                if (distance < eraserOptions.size * 1.2) {
-                  return false;
-                }
+          for (const linePoint of linePoints) {
+            for (const eraserPoint of eraserPoints) {
+              const dx = (linePoint[0] + line.x) - eraserPoint[0];
+              const dy = (linePoint[1] + line.y) - eraserPoint[1];
+              const distance = Math.sqrt(dx * dx + dy * dy);
+
+              if (distance < eraserOptions.size * 1.2) {
+                return false;
               }
             }
-            return true;
-          });
+          }
+          return true;
         });
-      }
-      setCurrentPoints([]);
+      });
     }
+    setCurrentPoints([]);
   }
+}
+
 
   function handleContextMenu(e) {
     e.evt.preventDefault();
@@ -121,18 +124,64 @@ export default function HandWritingCanvas() {
 
   function toggleEraseMode() {
     setButtonColor((prevColor) => (prevColor === "text-black" ? "text-blue-500" : "text-black"));
-    setDrawingTool((prevTool) => (prevTool === "Pen" ? "Eraser" : "Pen"));
+    setDrawingTool("Eraser");
   }
 
+  function togglePenMode() {
+    console.log("Pen")
+    setDrawingTool("Pen");
+  }
+
+  function toggleHighlightMode() {
+    setDrawingTool("Highlight");
+  }
+
+  function toggleMoveMode() {
+    setDrawingTool("Move")
+  }
+  
   return (
     <div className="flex flex-col items-center p-4">
+
       {/* 工具切換按鈕 */}
-      <button
-        onClick={toggleEraseMode}
-        className={`px-4 py-2 mb-4 border border-gray-300 rounded-lg shadow-md transition-colors duration-200 hover:bg-gray-100 ${buttonColor}`}
-      >
-        {drawingTool === "Pen" ? "橡皮擦" : "畫筆"}
-      </button>
+      <div className="flex flex-row items-center p-4">
+        <button
+          onClick={togglePenMode}
+          className={`px-4 py-2 mb-4 border border-gray-300 rounded-lg shadow-md transition-colors duration-200 hover:bg-gray-100 ${
+            drawingTool === "Pen" ? "text-blue-500" : "text-black"
+          }`}
+        >
+          Pen
+        </button>
+
+        <button
+          onClick={toggleHighlightMode}
+          className={`px-4 py-2 mb-4 border border-gray-300 rounded-lg shadow-md transition-colors duration-200 hover:bg-gray-100 ${
+            drawingTool === "Highlight" ? "text-blue-500" : "text-black"
+          }`}
+        >
+          Highlight
+        </button>
+
+        <button
+          onClick={toggleEraseMode}
+          className={`px-4 py-2 mb-4 border border-gray-300 rounded-lg shadow-md transition-colors duration-200 hover:bg-gray-100 ${
+            drawingTool === "Eraser" ? "text-blue-500" : "text-black"
+          }`}
+        >
+          橡皮擦
+        </button>
+        <button
+          onClick={toggleMoveMode}
+          className={`px-4 py-2 mb-4 border border-gray-300 rounded-lg shadow-md transition-colors duration-200 hover:bg-gray-100 ${
+            drawingTool === "Move" ? "text-blue-500" : "text-black"
+          }`}
+        >
+          Move
+        </button>
+
+      </div>
+      
 
       {/* 繪圖區域 */}
       <Stage
@@ -169,9 +218,9 @@ export default function HandWritingCanvas() {
             <Line
               points={getStroke(currentPoints, drawingTool === "Eraser" ? eraserOptions : options)
                 .flatMap((p) => [p[0], p[1]]) || []}
-              fill={drawingTool === "Eraser" ? "rgba(240, 240, 240, 0.5)" : "black"}
+              fill={drawingTool === "Eraser" || drawingTool === "Move" ? "transparent" : "black"}
               closed={true}
-              stroke={drawingTool === "Eraser" ? "rgba(240, 240, 240, 0.5)" : "black"}
+              stroke={drawingTool === "Eraser" || drawingTool === "Move" ? "transparent" : "black"}
               strokeWidth={1}
               lineCap="round"
               lineJoin="round"
