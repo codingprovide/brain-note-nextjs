@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Stage, Layer, Line } from "react-konva";
 import { getStroke } from "perfect-freehand";
+import { usePaintToolBarStore, PaintToolBarState } from "@/store/paint-tool-bar-store";
 
-// 手寫筆劃的參數設置
 const options = {
   size: 5,
   thinning: 0.2,
@@ -12,18 +12,23 @@ const options = {
 };
 
 export default function HandWritingCanvas() {
-  const [buttonColor, setButtonColor] = useState("text-black");
-  const [drawingTool, setDrawingTool] = useState("Pen");
   const [lines, setLines] = useState([]);
   const [currentPoints, setCurrentPoints] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [startPos, setStartPos] = useState(null);
 
+  const { paintTool, setPaintTool } = usePaintToolBarStore<PaintToolBarState>((state) => state);
+
+  useEffect(() => {
+    console.log("paintTool has changed:", paintTool);
+  }, [paintTool]);
+
   function handlePointerDown(e) {
     e.evt.preventDefault();
 
     if (e.evt.buttons === 1) {
-      if (drawingTool === "Pen") {
+      if (paintTool === "Move") {
+        // 只有在 Move 模式下才檢查線條是否被點擊
         const clickedIndex = lines.findIndex((line) => {
           if (line.tool === "Eraser") return false;
           const { x, y, points } = line;
@@ -38,9 +43,10 @@ export default function HandWritingCanvas() {
           setSelectedIndex(clickedIndex);
           setStartPos({ x: e.evt.offsetX, y: e.evt.offsetY });
         } else {
-          setCurrentPoints([[e.evt.offsetX, e.evt.offsetY, e.evt.pressure]]);
+          setCurrentPoints([]);
         }
       } else {
+        // 在非 Move 模式下，處理繪製或擦除
         setCurrentPoints([[e.evt.offsetX, e.evt.offsetY, e.evt.pressure]]);
       }
     }
@@ -49,7 +55,8 @@ export default function HandWritingCanvas() {
   function handlePointerMove(e) {
     if (e.evt.buttons !== 1) return;
 
-    if (selectedIndex !== null && startPos) {
+    if (selectedIndex !== null && startPos && paintTool === "Move") {
+      // 只有在 Move 模式下才能移動線條
       const dx = e.evt.offsetX - startPos.x;
       const dy = e.evt.offsetY - startPos.y;
       setStartPos({ x: e.evt.offsetX, y: e.evt.offsetY });
@@ -71,13 +78,8 @@ export default function HandWritingCanvas() {
   function handlePointerUp() {
     if (selectedIndex !== null) {
       setSelectedIndex(null);
-    } else if (currentPoints.length > 0) {
-      if (drawingTool === "Pen") {
-        setLines((prevLines) => [
-          ...prevLines,
-          { points: currentPoints, x: 0, y: 0, tool: "Pen", color: "black" },
-        ]);
-      } else {
+    } else if (currentPoints.length > 0 && paintTool !== "Move") {
+      if (paintTool === "Eraser") {
         const eraserOptions = {
           ...options,
           size: 20,
@@ -106,6 +108,11 @@ export default function HandWritingCanvas() {
             return true;
           });
         });
+      } else {
+        setLines((prevLines) => [
+          ...prevLines,
+          { points: currentPoints, x: 0, y: 0, tool: "Pen", color: "black" },
+        ]);
       }
       setCurrentPoints([]);
     }
@@ -115,20 +122,8 @@ export default function HandWritingCanvas() {
     e.evt.preventDefault();
   }
 
-  function toggleEraseMode() {
-    setButtonColor((prevColor) => (prevColor === "text-black" ? "text-blue-500" : "text-black"));
-    setDrawingTool((prevTool) => (prevTool === "Pen" ? "Eraser" : "Pen"));
-  }
-
   return (
     <div className="flex flex-col items-center p-4">
-      <button
-        onClick={toggleEraseMode}
-        className={`px-4 py-2 mb-4 border border-gray-300 rounded-lg shadow-md transition-colors duration-200 hover:bg-gray-100 ${buttonColor}`}
-      >
-        {drawingTool === "Pen" ? "橡皮擦" : "畫筆"}
-      </button>
-
       <Stage
         width={500}
         height={500}
@@ -159,11 +154,11 @@ export default function HandWritingCanvas() {
 
           {currentPoints.length > 0 && (
             <Line
-              points={getStroke(currentPoints, drawingTool === "Eraser" ? { ...options, size: 20, thinning: 0, easing: (t) => t } : options)
+              points={getStroke(currentPoints, paintTool === "Eraser" ? { ...options, size: 20, thinning: 0, easing: (t) => t } : options)
                 .flatMap((p) => [p[0], p[1]]) || []}
-              fill={drawingTool === "Eraser" ? "rgba(240, 240, 240, 0.5)" : "black"}
+              fill={paintTool === "Eraser" || paintTool === "Move" ? "transparent" : "black"}
               closed={true}
-              stroke={drawingTool === "Eraser" ? "rgba(240, 240, 240, 0.5)" : "black"}
+              stroke={paintTool === "Eraser" || paintTool === "Move" ? "transparent" : "black"}
               strokeWidth={1}
               lineCap="round"
               lineJoin="round"
