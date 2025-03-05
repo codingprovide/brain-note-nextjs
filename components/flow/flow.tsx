@@ -194,6 +194,7 @@ export default function Flow() {
         onReconnectStart={onReconnectStart}
         onReconnectEnd={onReconnectEnd}
         panOnScroll
+        connectionRadius={500}
       >
         <Controls />
         <MiniMap />

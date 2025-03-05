@@ -2,8 +2,13 @@
 
 import clsx from "clsx";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Handle, HandleType, Position } from "@xyflow/react";
-import { useReactFlow, NodeResizer, useNodeId } from "@xyflow/react";
+import { Handle, Position } from "@xyflow/react";
+import {
+  useReactFlow,
+  NodeResizer,
+  useNodeId,
+  useConnection,
+} from "@xyflow/react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +21,8 @@ import Editor from "../tiptap/Editor";
 import { JSONContent } from "@tiptap/react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import RenderNodeContent from "../ui/render-note-content";
+import { throttle } from "lodash";
+import { useToolBarStore, ToolBarState } from "@/store/tool-bar-store";
 
 // 共享樣式常數
 const cardStyle = {
@@ -23,29 +30,20 @@ const cardStyle = {
   minHeight: 200,
 };
 
+const handleXStyle =
+  "w-[50%] h-full tr border border-[#cbd5e1] bg-white rounded-none translate-x-0 -translate-y-1/2 opacity-0 ";
+
+const handleYStyle =
+  "w-full h-[50%] tr border border-[#cbd5e1] bg-white rounded-none translate-y-0 -translate-x-1/2 opacity-0";
+
+const handleNormalStyle = "w-5 h-5  border border-[#cbd5e1] bg-white";
+
 interface EditorNodeTypeProps {
   isConnectable: boolean;
   data: { content: JSONContent | undefined; html: string | undefined };
   selected: boolean;
   dragging: boolean;
 }
-
-interface handleProps {
-  id: string;
-  position: Position;
-  type: HandleType;
-}
-
-const handles: handleProps[] = [
-  { id: "source-left", position: Position.Left, type: "source" },
-  { id: "target-left", position: Position.Left, type: "target" },
-  { id: "source-right", position: Position.Right, type: "source" },
-  { id: "target-right", position: Position.Right, type: "target" },
-  { id: "source-top", position: Position.Top, type: "source" },
-  { id: "target-top", position: Position.Top, type: "target" },
-  { id: "source-bottom", position: Position.Bottom, type: "source" },
-  { id: "target-bottom", position: Position.Bottom, type: "target" },
-];
 
 const EditorNodeType = memo(function EditorNodeType({
   isConnectable,
@@ -56,10 +54,97 @@ const EditorNodeType = memo(function EditorNodeType({
   const nodeId = useNodeId();
   const { setNodes } = useReactFlow();
   const [isEditable, setIsEditable] = useState(false);
+  const [handleposition, setHandlePosition] = useState("");
+
+  const { activeTool } = useToolBarStore<ToolBarState>((state) => state);
 
   const nodeRef = useRef<HTMLDivElement>(null);
+  const connection = useConnection();
+  const isTarget = connection.inProgress && connection.fromNode.id !== nodeId;
+  const isTargetShow = isTarget || !connection.inProgress;
+  const isConnecting = connection.inProgress; // 是否正在拖曳連線
+  // !connection.inProgress &&
+  const handleLeftSourceShow =
+    handleposition === "left" && activeTool === "Connection";
+  const handleRightSourceShow =
+    handleposition === "right" && activeTool === "Connection";
+  const handleTopSourceShow =
+    handleposition === "top" && activeTool === "Connection";
+  const handleBottomSourceShow =
+    handleposition === "bottom" && activeTool === "Connection";
+  // && isTargetShow
+  const handleLeftTargetShow =
+    handleposition === "left" && activeTool === "Connection";
+  const handleRightTargetShow =
+    handleposition === "right" && activeTool === "Connection";
+  const handleTopTargetShow =
+    handleposition === "top" && activeTool === "Connection";
+  const handleBottomTargetShow =
+    handleposition === "bottom" && activeTool === "Connection";
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      // if (activeTool !== "Connection") return;
+      if (!nodeRef.current) return;
+
+      const rect = nodeRef.current.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left;
+      const offsetY = e.clientY - rect.top;
+
+      // 計算到各邊的距離
+      const leftDistance = offsetX;
+      const rightDistance = rect.width - offsetX;
+      const topDistance = offsetY;
+      const bottomDistance = rect.height - offsetY;
+
+      // 找出最小距離
+      const minDistance = Math.min(
+        leftDistance,
+        rightDistance,
+        topDistance,
+        bottomDistance
+      );
+
+      // 根據最小距離判斷最近的邊
+      let newPosition = "";
+      switch (minDistance) {
+        case leftDistance:
+          newPosition = "left";
+          break;
+        case rightDistance:
+          newPosition = "right";
+          break;
+        case topDistance:
+          newPosition = "top";
+          break;
+        case bottomDistance:
+          newPosition = "bottom";
+          break;
+      }
+
+      setHandlePosition(newPosition);
+    },
+    [nodeRef]
+  );
+
+  // 當滑鼠距離某邊小於緩衝區時，認為該邊需要顯示 handle
+  const handleMouseLeave = useCallback(() => {
+    setHandlePosition("");
+  }, []);
 
   useEffect(() => {
+    // Debug: 可檢查當前各邊顯示狀態
+    console.log("Edge visibility:", handleposition);
+  }, [handleposition]);
+
+  const throttledMouseMove = useRef(throttle(handleMouseMove, 50)).current;
+
+  useEffect(() => {
+    if (activeTool === "Connection") {
+      setIsEditable(false);
+      return;
+    }
+
     if (dragging) {
       setIsEditable(false);
     } else if (selected) {
@@ -67,7 +152,7 @@ const EditorNodeType = memo(function EditorNodeType({
     } else {
       setIsEditable(false);
     }
-  }, [dragging, selected]);
+  }, [dragging, selected, activeTool]);
 
   // 刪除節點
   const handleDeleteNode = useCallback(() => {
@@ -88,18 +173,17 @@ const EditorNodeType = memo(function EditorNodeType({
     [nodeId, setNodes]
   );
 
-  // when click other node , the editor not close
-  // when edior is open , drag the node editor should be close, when drag end, editor should be open
-
   return (
     <Card
       style={cardStyle}
       className={clsx(
         "w-full h-full relative bg-white flex flex-col border-solid border border-gray-400",
-        { nodrag: isEditable },
+        { nodrag: isEditable && activeTool === "Connection" },
         { "border-solid border-2 border-gray-700": selected }
       )}
       ref={nodeRef}
+      onMouseMove={throttledMouseMove}
+      onMouseLeave={activeTool === "Connection" ? handleMouseLeave : undefined}
     >
       {/* Header with Delete Button */}
       <CardHeader className="w-full p-1 rounded-t-xl  hover:bg-gray-100 flex items-center justify-between">
@@ -126,21 +210,88 @@ const EditorNodeType = memo(function EditorNodeType({
         <NodeResizer
           minWidth={200}
           minHeight={200}
-          isVisible={selected}
+          isVisible={selected && activeTool !== "Connection"}
           lineClassName="border border-[0.5px] border-transparent"
           handleClassName="bg-transparent border-transparent"
         />
+        <Handle
+          type="source"
+          position={Position.Left}
+          id="source-left"
+          isConnectable={isConnectable}
+          className={clsx(!isConnecting ? handleXStyle : handleNormalStyle, {
+            invisible: !handleLeftSourceShow,
+          })}
+        />
 
-        {handles.map((handle) => (
-          <Handle
-            key={handle.id}
-            id={handle.id}
-            type={handle.type}
-            position={handle.position}
-            isConnectable={isConnectable}
-            className="w-2 h-2 border border-[#cbd5e1] bg-white hover:w-6 hover:h-6"
-          />
-        ))}
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="target-left"
+          isConnectable={isConnectable}
+          className={clsx(!isConnecting ? handleNormalStyle : handleXStyle, {
+            invisible: !handleLeftTargetShow,
+          })}
+        />
+
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="source-right"
+          isConnectable={isConnectable}
+          className={clsx(!isConnecting ? handleXStyle : handleNormalStyle, {
+            invisible: !handleRightSourceShow,
+          })}
+        />
+
+        <Handle
+          type="target"
+          position={Position.Right}
+          id="target-right"
+          className={clsx(!isConnecting ? handleNormalStyle : handleXStyle, {
+            invisible: !handleRightTargetShow,
+          })}
+        />
+
+        <Handle
+          type="source"
+          position={Position.Top}
+          id="source-top"
+          isConnectable={isConnectable}
+          className={clsx(handleYStyle, {
+            invisible: !handleTopSourceShow,
+          })}
+        />
+
+        <Handle
+          type="target"
+          position={Position.Top}
+          id="target-top"
+          isConnectable={isConnectable}
+          className={clsx("w-5 h-5  border border-[#cbd5e1] bg-white", {
+            invisible: !handleTopTargetShow,
+          })}
+        />
+
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id="source-bottom"
+          isConnectable={isConnectable}
+          className={clsx(handleYStyle, {
+            invisible: !handleBottomSourceShow,
+          })}
+        />
+
+        <Handle
+          type="target"
+          position={Position.Bottom}
+          id="target-bottom"
+          isConnectable={isConnectable}
+          className={clsx("w-5 h-5  border border-[#cbd5e1] bg-white", {
+            invisible: !handleBottomTargetShow,
+          })}
+        />
 
         {/* 編輯器或靜態內容 */}
         {isEditable ? (
