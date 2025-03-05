@@ -16,23 +16,25 @@ const options = {
 
 // 橡皮擦的參數設置
 const eraserOptions = {
-  size: 10, // 橡皮擦大小
-  thinning: 0, // 無變細效果
-  smoothing: 0.99, // 平滑度
-  streamline: 0.99, // 流線化程度
-  easing: (t) => t, // 線性緩動函數
+  size: 10, 
+  thinning: 0, 
+  smoothing: 0.99, 
+  streamline: 0.99,
+  easing: (t) => t, 
 };
 
 export default function HandWritingCanvas() {
-  const [drawingTool, setDrawingTool] = useState("Pen"); // 當前繪圖工具（默認為筆）
-  const [lines, setLines] = useState([]); // 儲存所有繪製的線條
-  const [currentPoints, setCurrentPoints] = useState([]); // 當前正在繪製的點
-  const [selectedIndex, setSelectedIndex] = useState(null); // 被選中的線條索引
-  const [startPos, setStartPos] = useState(null); // 移動時的起始位置
-  const [color, setColor] = useState("black"); // 當前顏色
-  const [size, setSize] = useState(5); // 當前筆劃大小
-  const [showPenOptions, setShowPenOptions] = useState(false); // 是否顯示筆的選項
-  const [showHighlightOptions, setShowHighlightOptions] = useState(false); // 是否顯示螢光筆的選項
+  const [drawingTool, setDrawingTool] = useState("Pen"); 
+  const [lines, setLines] = useState([]); 
+  const [currentPoints, setCurrentPoints] = useState([]); 
+  const [selectedIndex, setSelectedIndex] = useState(null);
+  const [startPos, setStartPos] = useState(null); 
+  const [color, setColor] = useState("black");
+  const [size, setSize] = useState(5); 
+  const [showPenOptions, setShowPenOptions] = useState(false); 
+  const [showHighlightOptions, setShowHighlightOptions] = useState(false); 
+
+  const buttonstyle ="px-4 py-2 border border-gray-300 rounded-lg shadow-md transition-colors duration-200 hover:bg-gray-100"
 
   // 更新筆劃參數的函數
   const updateOptions = (newSize) => ({
@@ -43,8 +45,8 @@ export default function HandWritingCanvas() {
   // 處理滑鼠或觸控按下的動作
   function handlePointerDown(e) {
     e.evt.preventDefault();
-    if (e.evt.buttons === 1) { // 左鍵按下
-      if (drawingTool === "Move") { // 移動模式
+    if (e.evt.buttons === 1) { 
+      if (drawingTool === "Move") { 
         const clickedIndex = lines.findIndex((line) => {
           if (line.tool === "Eraser") return false; // 橡皮擦線條不可移動
           const { x, y, points } = line;
@@ -58,10 +60,10 @@ export default function HandWritingCanvas() {
           setSelectedIndex(clickedIndex); // 選中線條
           setStartPos({ x: e.evt.offsetX, y: e.evt.offsetY }); // 記錄起始位置
         } else {
-          setCurrentPoints([[e.evt.offsetX, e.evt.offsetY, e.evt.pressure]]); // 開始新線條
+          setCurrentPoints([[e.evt.offsetX, e.evt.offsetY, e.evt.pressure]]); 
         }
       } else {
-        setCurrentPoints([[e.evt.offsetX, e.evt.offsetY, e.evt.pressure]]); // 開始新線條
+        setCurrentPoints([[e.evt.offsetX, e.evt.offsetY, e.evt.pressure]]);
       }
     }
   }
@@ -77,8 +79,8 @@ export default function HandWritingCanvas() {
         const newLines = [...prevLines];
         newLines[selectedIndex] = {
           ...newLines[selectedIndex],
-          x: newLines[selectedIndex].x + dx, // 更新X座標
-          y: newLines[selectedIndex].y + dy, // 更新Y座標
+          x: newLines[selectedIndex].x + dx, 
+          y: newLines[selectedIndex].y + dy,
         };
         return newLines;
       });
@@ -92,7 +94,7 @@ export default function HandWritingCanvas() {
     if (selectedIndex !== null) {
       setSelectedIndex(null); // 取消選中
     } else if (currentPoints.length > 0 && drawingTool !== "Move") {
-      if (drawingTool === "Pen" || drawingTool === "Highlight") { // 筆或螢光筆模式
+      if (drawingTool === "Pen" || drawingTool === "Highlight") { 
         setLines((prevLines) => [
           ...prevLines,
           { points: currentPoints, x: 0, y: 0, tool: drawingTool, color, size }, // 添加新線條
@@ -117,7 +119,7 @@ export default function HandWritingCanvas() {
           });
         });
       }
-      setCurrentPoints([]); // 清空當前點
+      setCurrentPoints([]);
     }
   }
 
@@ -126,61 +128,53 @@ export default function HandWritingCanvas() {
     e.evt.preventDefault();
   }
 
-  // 切換到筆模式並顯示選項
   function togglePenMode() {
     setDrawingTool("Pen");
     setShowPenOptions(!showPenOptions);
     setShowHighlightOptions(false);
   }
 
-  // 切換到螢光筆模式並顯示選項
   function toggleHighlightMode() {
     setDrawingTool("Highlight");
     setShowHighlightOptions(!showHighlightOptions);
     setShowPenOptions(false);
   }
 
-  // 切換到橡皮擦模式
   function toggleEraseMode() {
     setDrawingTool("Eraser");
     setShowPenOptions(false);
     setShowHighlightOptions(false);
   }
 
-  // 切換到移動模式
   function toggleMoveMode() {
     setDrawingTool("Move");
     setShowPenOptions(false);
     setShowHighlightOptions(false);
   }
 
-  // 處理顏色選擇
   const handleColorSelect = (newColor) => {
     setColor(newColor);
   };
 
-  // 處理筆劃大小選擇
   const handleSizeSelect = (newSize) => {
     setSize(newSize);
   };
 
   return (
     <div className="flex flex-col items-center p-4">
-      {/* 工具切換按鈕 */}
       <div className="flex flex-row items-start p-4 space-x-4">
         <div className="relative flex flex-col items-center">
           <button
             onClick={togglePenMode}
-            className={`px-4 py-2 border border-gray-300 rounded-lg shadow-md transition-colors duration-200 hover:bg-gray-100 ${
+            className={`${buttonstyle} ${
               drawingTool === "Pen" ? "text-blue-500" : "text-black"
             }`}
           >
-            <FaPencilAlt /> {/* 筆圖標 */}
+            <FaPencilAlt />
           </button>
           {showPenOptions && (
             <div className="absolute top-full mt-2 p-2 bg-gray-100 rounded-lg shadow-md z-10">
               <div className="flex space-x-2 mb-2">
-                {/* 筆的顏色選擇 */}
                 <button
                   className="w-6 h-6 rounded-full bg-black"
                   onClick={() => handleColorSelect("black")}
@@ -195,7 +189,6 @@ export default function HandWritingCanvas() {
                 />
               </div>
               <div className="flex space-x-2">
-                {/* 筆的大小選擇 */}
                 <button
                   className="px-2 py-1 border rounded"
                   onClick={() => handleSizeSelect(3)}
@@ -222,16 +215,15 @@ export default function HandWritingCanvas() {
         <div className="relative flex flex-col items-center">
           <button
             onClick={toggleHighlightMode}
-            className={`px-4 py-2 border border-gray-300 rounded-lg shadow-md transition-colors duration-200 hover:bg-gray-100 ${
+            className={`${buttonstyle} ${
               drawingTool === "Highlight" ? "text-blue-500" : "text-black"
             }`}
           >
-            <FaHighlighter /> {/* 螢光筆圖標 */}
+            <FaHighlighter />
           </button>
           {showHighlightOptions && (
             <div className="absolute top-full mt-2 p-2 bg-gray-100 rounded-lg shadow-md z-10">
               <div className="flex space-x-2 mb-2">
-                {/* 螢光筆的顏色選擇 */}
                 <button
                   className="w-6 h-6 rounded-full bg-yellow-500 opacity-70"
                   onClick={() => handleColorSelect("rgba(255, 255, 0, 0.7)")}
@@ -246,7 +238,6 @@ export default function HandWritingCanvas() {
                 />
               </div>
               <div className="flex space-x-2">
-                {/* 螢光筆的大小選擇 */}
                 <button
                   className="px-2 py-1 border rounded"
                   onClick={() => handleSizeSelect(3)}
@@ -269,37 +260,33 @@ export default function HandWritingCanvas() {
             </div>
           )}
         </div>
-
-        {/* 橡皮擦按鈕 */}
         <button
           onClick={toggleEraseMode}
-          className={`px-4 py-2 border border-gray-300 rounded-lg shadow-md transition-colors duration-200 hover:bg-gray-100 ${
+          className={`${buttonstyle} ${
             drawingTool === "Eraser" ? "text-blue-500" : "text-black"
           }`}
         >
-          <PiEraserFill /> {/* 橡皮擦圖標 */}
+          <PiEraserFill />
         </button>
-
-        {/* 移動按鈕 */}
         <button
           onClick={toggleMoveMode}
-          className={`px-4 py-2 border border-gray-300 rounded-lg shadow-md transition-colors duration-200 hover:bg-gray-100 ${
+          className={`${buttonstyle} ${
             drawingTool === "Move" ? "text-blue-500" : "text-black"
           }`}
         >
-          <BsCursor /> {/* 移動圖標 */}
+          <BsCursor />
         </button>
       </div>
 
       {/* 繪圖區域 */}
       <Stage
-        width={500} // 畫布寬度
-        height={500} // 畫布高度
-        onPointerDown={handlePointerDown} // 按下事件
-        onPointerMove={handlePointerMove} // 移動事件
-        onPointerUp={handlePointerUp} // 放開事件
-        onContextMenu={handleContextMenu} // 右鍵事件
-        className="border border-gray-400 rounded-lg shadow-lg" // 樣式
+        width={500}
+        height={500}
+        onPointerDown={handlePointerDown} 
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp} 
+        onContextMenu={handleContextMenu}
+        className="border border-gray-400 rounded-lg shadow-lg" 
       >
         <Layer>
           {lines.map((line, index) => {
@@ -307,15 +294,15 @@ export default function HandWritingCanvas() {
             return (
               <Line
                 key={index}
-                points={strokePoints.flatMap((p) => [p[0], p[1]])} // 將點轉為平坦陣列
-                fill={line.color} // 填充顏色
-                closed={true} // 閉合路徑
-                stroke={line.color} // 邊框顏色
-                strokeWidth={1} // 邊框寬度
-                lineCap="round" // 線條端點樣式
-                lineJoin="round" // 線條連接樣式
-                x={line.x} // X座標偏移
-                y={line.y} // Y座標偏移
+                points={strokePoints.flatMap((p) => [p[0], p[1]])} 
+                fill={line.color}
+                closed={true} 
+                stroke={line.color} 
+                strokeWidth={1}
+                lineCap="round"
+                lineJoin="round"
+                x={line.x} 
+                y={line.y} 
               />
             );
           })}
@@ -323,12 +310,12 @@ export default function HandWritingCanvas() {
             <Line
               points={getStroke(currentPoints, drawingTool === "Eraser" ? eraserOptions : updateOptions(size))
                 .flatMap((p) => [p[0], p[1]]) || []} // 當前線條的點
-              fill={drawingTool === "Eraser" || drawingTool === "Move" ? "transparent" : color} // 填充顏色
-              closed={true} // 閉合路徑
-              stroke={drawingTool === "Eraser" || drawingTool === "Move" ? "transparent" : color} // 邊框顏色
-              strokeWidth={1} // 邊框寬度
-              lineCap="round" // 線條端點樣式
-              lineJoin="round" // 線條連接樣式
+              fill={drawingTool === "Eraser" || drawingTool === "Move" ? "transparent" : color} 
+              closed={true} 
+              stroke={drawingTool === "Eraser" || drawingTool === "Move" ? "transparent" : color}
+              strokeWidth={1}
+              lineCap="round" 
+              lineJoin="round" 
             />
           )}
         </Layer>
