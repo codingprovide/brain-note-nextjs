@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { Stage, Layer, Line } from "react-konva";
 import { getStroke } from "perfect-freehand";
+import { FaPencilAlt, FaHighlighter } from "react-icons/fa";
+import { PiEraserFill } from "react-icons/pi";
+import { BsCursor} from "react-icons/bs";
 
 // 手寫筆劃的參數設置
 const options = {
@@ -13,7 +16,7 @@ const options = {
 
 // 橡皮擦的參數設置
 const eraserOptions = {
-  size: 20, // 橡皮擦尺寸比筆大
+  size: 10, // 橡皮擦尺寸比筆大
   thinning: 0,
   smoothing: 0.99,
   streamline: 0.99,
@@ -21,7 +24,6 @@ const eraserOptions = {
 };
 
 export default function HandWritingCanvas() {
-  const [buttonColor, setButtonColor] = useState("text-black"); // 按鈕顏色
   const [drawingTool, setDrawingTool] = useState("Pen"); // 當前工具：Pen 或 Eraser
   const [lines, setLines] = useState([]); // 已繪製的線條
   const [currentPoints, setCurrentPoints] = useState([]); // 當前繪製的線條點
@@ -151,7 +153,7 @@ export default function HandWritingCanvas() {
             drawingTool === "Pen" ? "text-blue-500" : "text-black"
           }`}
         >
-          Pen
+          <FaPencilAlt />
         </button>
 
         <button
@@ -160,7 +162,7 @@ export default function HandWritingCanvas() {
             drawingTool === "Highlight" ? "text-blue-500" : "text-black"
           }`}
         >
-          Highlight
+          <FaHighlighter />
         </button>
 
         <button
@@ -169,7 +171,7 @@ export default function HandWritingCanvas() {
             drawingTool === "Eraser" ? "text-blue-500" : "text-black"
           }`}
         >
-          橡皮擦
+          <PiEraserFill />
         </button>
         <button
           onClick={toggleMoveMode}
@@ -177,7 +179,7 @@ export default function HandWritingCanvas() {
             drawingTool === "Move" ? "text-blue-500" : "text-black"
           }`}
         >
-          Move
+          <BsCursor />
         </button>
 
       </div>
