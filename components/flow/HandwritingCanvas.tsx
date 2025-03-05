@@ -76,7 +76,7 @@ export default function HandWritingCanvas() {
         return newLines;
       });
     } else {
-      setCurrentPoints((prevPoins) => [...prevPoints, [e.evt.offsetX, e.evt.offsetY, e.evt.pressure]]);
+      setCurrentPoints((prevPoints) => [...prevPoints, [e.evt.offsetX, e.evt.offsetY, e.evt.pressure]]);
     }
   }
 
