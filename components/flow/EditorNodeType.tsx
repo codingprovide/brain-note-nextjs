@@ -56,6 +56,7 @@ const EditorNodeType = memo(function EditorNodeType({
   const nodeId = useNodeId();
   const { setNodes } = useReactFlow();
   const [isEditable, setIsEditable] = useState(false);
+
   const nodeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
