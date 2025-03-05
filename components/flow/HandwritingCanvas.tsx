@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Stage, Layer, Line } from "react-konva";
 import { getStroke } from "perfect-freehand";
 import { usePaintToolBarStore, PaintToolBarState } from "@/store/paint-tool-bar-store";
+import { useDropDownStore, DropDownState } from "@/store/drop-down-store";
 
 const options = {
-  size: 5,
+  size: 3,
   thinning: 0.2,
   smoothing: 0.99,
   streamline: 0.99,
@@ -17,11 +18,15 @@ export default function HandWritingCanvas() {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [startPos, setStartPos] = useState(null);
 
-  const { paintTool, setPaintTool } = usePaintToolBarStore<PaintToolBarState>((state) => state);
+  const { paintTool } = usePaintToolBarStore<PaintToolBarState>((state) => state);
+  const { toolColor, stroke } = useDropDownStore<DropDownState>((state) => state);
 
   useEffect(() => {
     console.log("paintTool has changed:", paintTool);
   }, [paintTool]);
+  useEffect(() => {
+    console.log("lines", lines);
+  }, [lines]);
 
   function handlePointerDown(e) {
     e.evt.preventDefault();
@@ -111,8 +116,8 @@ export default function HandWritingCanvas() {
       } else {
         setLines((prevLines) => [
           ...prevLines,
-          { points: currentPoints, x: 0, y: 0, tool: "Pen", color: "black" },
-        ]);
+          { points: currentPoints, x: 0, y: 0, tool: paintTool, color: toolColor, strokeWidth: stroke },
+        ]);        
       }
       setCurrentPoints([]);
     }
@@ -143,7 +148,7 @@ export default function HandWritingCanvas() {
                 fill={line.color}
                 closed={true}
                 stroke={line.color}
-                strokeWidth={1}
+                strokeWidth={line.strokeWidth}
                 lineCap="round"
                 lineJoin="round"
                 x={line.x}
@@ -156,10 +161,10 @@ export default function HandWritingCanvas() {
             <Line
               points={getStroke(currentPoints, paintTool === "Eraser" ? { ...options, size: 20, thinning: 0, easing: (t) => t } : options)
                 .flatMap((p) => [p[0], p[1]]) || []}
-              fill={paintTool === "Eraser" || paintTool === "Move" ? "transparent" : "black"}
+              fill={paintTool === "Eraser" || paintTool === "Move" ? "transparent" : toolColor}
               closed={true}
-              stroke={paintTool === "Eraser" || paintTool === "Move" ? "transparent" : "black"}
-              strokeWidth={1}
+              stroke={paintTool === "Eraser" || paintTool === "Move" ? "transparent" : toolColor}
+              strokeWidth={stroke}
               lineCap="round"
               lineJoin="round"
             />
