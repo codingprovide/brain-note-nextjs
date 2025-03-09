@@ -54,11 +54,9 @@ const handles: handleProps[] = [
 ];
 
 export default function HandWritingCanvas({
-  type,
   selected,
   isConnectable,
 }: {
-  type: string;
   selected: boolean;
   isConnectable: boolean;
 }) {
