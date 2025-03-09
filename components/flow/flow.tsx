@@ -212,8 +212,9 @@ export default function Flow() {
           </Button>
           <Button onClick={() => serverSignOut()}>sign out</Button>
         </Panel>
+        <Panel position="bottom-center">
           <Toolbar className="inline-flex w-auto" />
-        
+        </Panel>
       </ReactFlow>
     </div>
   );

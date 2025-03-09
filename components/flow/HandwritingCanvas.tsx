@@ -1,25 +1,112 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Stage, Layer, Line } from "react-konva";
+import Konva from "konva";
 import { getStroke } from "perfect-freehand";
-import { usePaintToolBarStore, PaintToolBarState } from "@/store/paint-tool-bar-store";
+import {
+  usePaintToolBarStore,
+  PaintToolBarState,
+} from "@/store/paint-tool-bar-store";
 import { useDropDownStore, DropDownState } from "@/store/drop-down-store";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useReactFlow, NodeResizer, useNodeId } from "@xyflow/react";
+import { Trash2 } from "lucide-react";
+import { Handle, HandleType, Position } from "@xyflow/react";
+
+interface DrawLine {
+  points: [number, number, number][];
+  x: number;
+  y: number;
+  tool: string;
+  color: string;
+  strokeWidth: number;
+}
 
 const options = {
   size: 3,
   thinning: 0.2,
   smoothing: 0.99,
   streamline: 0.99,
-  easing: (t) => Math.sin(t * Math.PI * 0.5),
+  easing: (t: number) => Math.sin(t * Math.PI * 0.5),
 };
 
-export default function HandWritingCanvas() {
-  const [lines, setLines] = useState([]);
-  const [currentPoints, setCurrentPoints] = useState([]);
-  const [selectedIndex, setSelectedIndex] = useState(null);
-  const [startPos, setStartPos] = useState(null);
+interface handleProps {
+  id: string;
+  position: Position;
+  type: HandleType;
+}
 
-  const { paintTool } = usePaintToolBarStore<PaintToolBarState>((state) => state);
-  const { toolColor, stroke } = useDropDownStore<DropDownState>((state) => state);
+const handles: handleProps[] = [
+  { id: "source-left", position: Position.Left, type: "source" },
+  { id: "target-left", position: Position.Left, type: "target" },
+  { id: "source-right", position: Position.Right, type: "source" },
+  { id: "target-right", position: Position.Right, type: "target" },
+  { id: "source-top", position: Position.Top, type: "source" },
+  { id: "target-top", position: Position.Top, type: "target" },
+  { id: "source-bottom", position: Position.Bottom, type: "source" },
+  { id: "target-bottom", position: Position.Bottom, type: "target" },
+];
+
+export default function HandWritingCanvas({
+  type,
+  selected,
+  isConnectable,
+}: {
+  type: string;
+  selected: boolean;
+  isConnectable: boolean;
+}) {
+  const [lines, setLines] = useState<DrawLine[]>([]);
+  const [currentPoints, setCurrentPoints] = useState<
+    [number, number, number][]
+  >([]);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(
+    null
+  );
+
+  const { paintTool } = usePaintToolBarStore<PaintToolBarState>(
+    (state) => state
+  );
+  const { toolColor, stroke } = useDropDownStore<DropDownState>(
+    (state) => state
+  );
+  const stageRef = useRef<Konva.Stage>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [stageSize, setStageSize] = useState({ width: 300, height: 300 });
+  const [isResize, setIsResize] = useState(false);
+  const [cardSize, setCardSize] = useState({ width: 500, height: 500 });
+
+  // useEffect(() => {
+  //   if (!containerRef.current) return;
+  //   if (!isResize) return;
+  //   const container = containerRef.current;
+
+  //   const resizeObserver = new ResizeObserver(() => {
+  //     setStageSize({
+  //       width: container.clientWidth,
+  //       height: container.clientHeight,
+  //     });
+  //   });
+  //   resizeObserver.observe(container);
+
+  //   return () => {
+  //     resizeObserver.disconnect();
+  //   };
+  // }, [isResize]);
+
+  useEffect(() => {
+    setStageSize({
+      width: cardSize.width - 74,
+      height: cardSize.height - 74,
+    });
+  }, [cardSize]);
 
   useEffect(() => {
     console.log("paintTool has changed:", paintTool);
@@ -28,7 +115,16 @@ export default function HandWritingCanvas() {
     console.log("lines", lines);
   }, [lines]);
 
-  function handlePointerDown(e) {
+  function handlePointerDown(e: {
+    evt: {
+      preventDefault: () => void;
+      buttons: number;
+      offsetX: number;
+      offsetY: number;
+      pressure: number;
+    };
+  }) {
+    if (isResize) return; // 當在調整大小時，不處理其他 pointerDown 事件
     e.evt.preventDefault();
 
     if (e.evt.buttons === 1) {
@@ -57,7 +153,15 @@ export default function HandWritingCanvas() {
     }
   }
 
-  function handlePointerMove(e) {
+  function handlePointerMove(e: {
+    evt: {
+      buttons: number;
+      offsetX: number;
+      offsetY: number;
+      pressure: number;
+    };
+  }) {
+    if (isResize) return; // 當在調整大小時，不處理其他 pointerDown 事件
     if (e.evt.buttons !== 1) return;
 
     if (selectedIndex !== null && startPos && paintTool === "Move") {
@@ -76,11 +180,15 @@ export default function HandWritingCanvas() {
         return newLines;
       });
     } else {
-      setCurrentPoints((prevPoints) => [...prevPoints, [e.evt.offsetX, e.evt.offsetY, e.evt.pressure]]);
+      setCurrentPoints((prevPoints) => [
+        ...prevPoints,
+        [e.evt.offsetX, e.evt.offsetY, e.evt.pressure],
+      ]);
     }
   }
 
   function handlePointerUp() {
+    if (isResize) return; // 當在調整大小時，不處理其他 pointerDown 事件
     if (selectedIndex !== null) {
       setSelectedIndex(null);
     } else if (currentPoints.length > 0 && paintTool !== "Move") {
@@ -89,7 +197,7 @@ export default function HandWritingCanvas() {
           ...options,
           size: 20,
           thinning: 0,
-          easing: (t) => t,
+          easing: (t: number) => t,
         };
         const eraserPoints = getStroke(currentPoints, eraserOptions) || [];
 
@@ -116,61 +224,176 @@ export default function HandWritingCanvas() {
       } else {
         setLines((prevLines) => [
           ...prevLines,
-          { points: currentPoints, x: 0, y: 0, tool: paintTool, color: toolColor, strokeWidth: stroke },
-        ]);        
+          {
+            points: currentPoints,
+            x: 0,
+            y: 0,
+            tool: paintTool,
+            color: toolColor,
+            strokeWidth: stroke,
+          },
+        ]);
       }
       setCurrentPoints([]);
     }
   }
 
-  function handleContextMenu(e) {
+  function handleContextMenu(e: { evt: { preventDefault: () => void } }) {
     e.evt.preventDefault();
   }
+  const nodeId = useNodeId();
+  const { setNodes } = useReactFlow();
+
+  // 刪除節點
+  const handleDeleteNode = useCallback(() => {
+    setNodes((nodes) => nodes.filter((node) => node.id !== nodeId));
+  }, [nodeId, setNodes]);
 
   return (
-    <div className="flex flex-col items-center p-4">
-      <Stage
-        width={500}
-        height={500}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onContextMenu={handleContextMenu}
-        className="border border-gray-400 rounded-lg shadow-lg"
-      >
-        <Layer>
-          {lines.map((line, index) => {
-            const strokePoints = getStroke(line.points, line.tool === "Eraser" ? { ...options, size: 20, thinning: 0, easing: (t) => t } : options) || [];
-            return (
-              <Line
-                key={index}
-                points={strokePoints.flatMap((p) => [p[0], p[1]])}
-                fill={line.color}
-                closed={true}
-                stroke={line.color}
-                strokeWidth={line.strokeWidth}
-                lineCap="round"
-                lineJoin="round"
-                x={line.x}
-                y={line.y}
-              />
-            );
-          })}
+    <Card
+      className=" min-h-52 min-w-52 "
+      style={{ width: cardSize.width, height: cardSize.height }}
+    >
+      {/* Header with Delete Button */}
+      <CardHeader className="w-full p-1 rounded-t-xl  hover:bg-gray-100 flex items-center justify-between">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                className="p-1 w-8 h-8"
+                onClick={handleDeleteNode}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Delete the Node</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </CardHeader>
 
-          {currentPoints.length > 0 && (
-            <Line
-              points={getStroke(currentPoints, paintTool === "Eraser" ? { ...options, size: 20, thinning: 0, easing: (t) => t } : options)
-                .flatMap((p) => [p[0], p[1]]) || []}
-              fill={paintTool === "Eraser" || paintTool === "Move" ? "transparent" : toolColor}
-              closed={true}
-              stroke={paintTool === "Eraser" || paintTool === "Move" ? "transparent" : toolColor}
-              strokeWidth={stroke}
-              lineCap="round"
-              lineJoin="round"
-            />
-          )}
-        </Layer>
-      </Stage>
-    </div>
+      <CardContent className="overflow-hidden">
+        <NodeResizer
+          minWidth={200}
+          minHeight={200}
+          isVisible={selected}
+          lineClassName="border border-[0.5px] border-transparent"
+          handleClassName="bg-transparent border-transparent"
+          onResizeStart={() => setIsResize(true)}
+          onResize={(event, params) => {
+            // 在調整過程中更新 Stage 尺寸
+            if (containerRef.current) {
+              // Use params.width and params.height for the node dimensions
+              setCardSize({ width: params.width, height: params.height });
+
+              // setStageSize({
+              //   width: params.width,
+              //   height: params.height,
+              // });
+
+              console.log(
+                "containerRef.current.clientWidth",
+                containerRef.current.clientWidth,
+                "containerRef.current.clientHeight",
+                containerRef.current.clientHeight
+              );
+            }
+          }}
+          onResizeEnd={() => {
+            setIsResize(false);
+            // 再次確保尺寸已更新
+            // if (containerRef.current) {
+            //   setStageSize({
+            //     width: containerRef.current.clientWidth,
+            //     height: containerRef.current.clientHeight,
+            //   });
+            // }
+          }}
+        />
+
+        {handles.map((handle) => (
+          <Handle
+            key={handle.id}
+            id={handle.id}
+            type={handle.type}
+            position={handle.position}
+            isConnectable={isConnectable}
+            className="w-2 h-2 border border-[#cbd5e1] bg-white hover:w-6 hover:h-6"
+          />
+        ))}
+        <div ref={containerRef} className="w-full h-full">
+          <Stage
+            ref={stageRef}
+            width={stageSize.width}
+            height={stageSize.height}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onContextMenu={handleContextMenu}
+            className="border border-gray-400 rounded-lg shadow-lg m-3"
+          >
+            <Layer>
+              {lines.map((line, index) => {
+                const strokePoints =
+                  getStroke(
+                    line.points,
+                    line.tool === "Eraser"
+                      ? { ...options, size: 20, thinning: 0, easing: (t) => t }
+                      : options
+                  ) || [];
+                return (
+                  <Line
+                    key={index}
+                    points={strokePoints.flatMap((p) => [p[0], p[1]])}
+                    fill={line.color}
+                    closed={true}
+                    stroke={line.color}
+                    strokeWidth={line.strokeWidth}
+                    lineCap="round"
+                    lineJoin="round"
+                    x={line.x}
+                    y={line.y}
+                  />
+                );
+              })}
+
+              {currentPoints.length > 0 && (
+                <Line
+                  points={
+                    getStroke(
+                      currentPoints,
+                      paintTool === "Eraser"
+                        ? {
+                            ...options,
+                            size: 20,
+                            thinning: 0,
+                            easing: (t) => t,
+                          }
+                        : options
+                    ).flatMap((p) => [p[0], p[1]]) || []
+                  }
+                  fill={
+                    paintTool === "Eraser" || paintTool === "Move"
+                      ? "transparent"
+                      : toolColor
+                  }
+                  closed={true}
+                  stroke={
+                    paintTool === "Eraser" || paintTool === "Move"
+                      ? "transparent"
+                      : toolColor
+                  }
+                  strokeWidth={stroke}
+                  lineCap="round"
+                  lineJoin="round"
+                />
+              )}
+            </Layer>
+          </Stage>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
