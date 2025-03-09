@@ -4,7 +4,7 @@ import Flow from "@/components/flow/flow";
 
 export default function WorkSpacePage() {
   return (
-    <div className="h-screen w-screen relative overflow-hidden">
+    <div className="relative w-screen h-screen overflow-hidden">
       <ReactFlowProvider>
         <Flow />
       </ReactFlowProvider>

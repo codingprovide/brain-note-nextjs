@@ -11,6 +11,7 @@ import {
   useReactFlow,
   Panel,
 } from "@xyflow/react";
+
 import type { Edge, Connection, ReactFlowInstance } from "@xyflow/react";
 import EditorNodeType from "./EditorNodeType";
 // import DrawNodeType from "./DrawNodeType";
@@ -162,7 +163,7 @@ export default function Flow() {
   };
 
   return (
-    <div className={clsx(" w-screen h-screen ")}>
+    <div className={clsx(" h-screen w-screen ")}>
       <ReactFlow
         className={clsx(
           { "cursor-text": activeTool === "Text" },
@@ -195,8 +196,8 @@ export default function Flow() {
         onReconnectEnd={onReconnectEnd}
         panOnScroll
       >
-        <Controls />
-        <MiniMap />
+        {/* <Controls /> */}
+        {/* <MiniMap /> */}
         <Panel position="top-right">
           <Button onClick={onSave} disabled={isSaving}>
             {isSaving ? (
