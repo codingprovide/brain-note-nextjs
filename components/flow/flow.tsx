@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ReactFlow,
   useNodesState,
@@ -35,6 +35,8 @@ import { useSideBarStore } from "@/store/sidebar-store";
 import { useChat } from "@ai-sdk/react";
 import { Input } from "../ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const proOptions = { hideAttribution: true };
 
@@ -74,6 +76,12 @@ export default function Flow() {
     reload,
     error,
   } = useChat({ api: "/api/gemini" });
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   const onReconnectStart = useCallback(() => {
     edgeReconnectSuccessful.current = false;
@@ -237,78 +245,125 @@ export default function Flow() {
         <Panel position="bottom-center">
           <Toolbar className="inline-flex w-auto" />
         </Panel>
-
         {navMainButton === "Ask AI" && (
-          <Panel className=" flex items-center justify-center h-screen w-screen">
+          <Panel className="flex items-center justify-center h-screen w-screen">
             <Card className="w-[350px]">
               <CardHeader>
                 <CardTitle className="flex justify-between items-center">
                   <div>Chat with Gemini AI</div>
                   <button
-                    className=" hover:bg-gray-200 p-1 rounded-full"
+                    className="hover:bg-gray-200 p-1 rounded-full"
                     onClick={() => setNavMainButton("")}
                   >
                     <X />
                   </button>
                 </CardTitle>
-
                 <CardDescription>
-                  Deploy your new project in one-click.
+                  You can chat with Gemini AI here.
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[300px] pr-4">
-                <ScrollArea>
-                  {messages?.length === 0 && (
-                    <div className=" w-full mt-32 text-gray-200 items-center justify-center flex gap-3">
-                      No message yet
-                    </div>
-                  )}
-                  {messages?.map((messages, index) => (
-                    <div
-                      className="flex flex-col items-start space-y-2 px-4 py-3 text-sm"
-                      key={index}
-                    ></div>
-                  ))}
-                  {isLoading && (
-                    <div className=" w-full justify-center items-center flex gap-3">
-                      <Loader className=" animate-spin h-5 w-5  text-primary" />
-                      <button
-                        className="underline"
-                        type="button"
-                        onClick={() => stop()}
+                <ScrollArea className="h-full">
+                  <div className="flex flex-col h-full overflow-auto">
+                    {messages?.length === 0 && (
+                      <div className="w-full mt-32 text-gray-200 flex items-center justify-center gap-3">
+                        No message yet
+                      </div>
+                    )}
+                    {messages?.map((message, index) => (
+                      <div
+                        className={clsx(
+                          "mb-4",
+                          message.role === "user" ? "text-right" : "text-left"
+                        )}
+                        key={index}
                       >
-                        abort
-                      </button>
-                    </div>
-                  )}
-                  {error && (
-                    <div className=" flex justify-center items-center gap-3">
-                      <div>An error occurred</div>
-                      <button
-                        className=" underline "
-                        type="button"
-                        onClick={() => reload}
-                      >
-                        retry
-                      </button>
-                    </div>
-                  )}
+                        <div
+                          className={clsx(
+                            "inline-block rounded-lg p-2",
+                            message.role === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
+                          )}
+                        >
+                          <ReactMarkdown
+                            children={message.content}
+                            rehypePlugins={[remarkGfm]}
+                            components={{
+                              code: ({ inline, children, ...props }) =>
+                                inline ? (
+                                  <code
+                                    {...props}
+                                    className="bg-gray-200 px-1 rounded"
+                                  >
+                                    {children}
+                                  </code>
+                                ) : (
+                                  <pre
+                                    {...props}
+                                    className="bg-gray-200 p-2 rounded"
+                                  >
+                                    <code>{children}</code>
+                                  </pre>
+                                ),
+                              ul: ({ children }) => (
+                                <ul className="list-disc pl-4 space-y-1">
+                                  {children}
+                                </ul>
+                              ),
+                              ol: ({ children }) => (
+                                <li className="pl-4 space-y-1">{children}</li>
+                              ),
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+
+                    {isLoading && (
+                      <div className="w-full flex justify-center items-center gap-3">
+                        <Loader className="animate-spin h-5 w-5 text-primary" />
+                        <button
+                          className="underline"
+                          type="button"
+                          onClick={() => stop()}
+                        >
+                          abort
+                        </button>
+                      </div>
+                    )}
+                    {error && (
+                      <div className="flex justify-center items-center gap-3">
+                        <div>An error occurred</div>
+                        <button
+                          className="underline"
+                          type="button"
+                          onClick={() => reload()}
+                        >
+                          retry
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Auto-scroll reference */}
+                    <div ref={scrollAreaRef} />
+                  </div>
                 </ScrollArea>
               </CardContent>
               <CardFooter className="flex justify-between">
                 <form
                   onSubmit={handleSubmit}
-                  className=" flex w-full space-x-2 items-center"
+                  className="flex w-full space-x-2 items-center"
                 >
                   <Input
                     value={input}
                     onChange={handleInputChange}
-                    className=" flex-1"
+                    className="flex-1"
                     placeholder="Type your message here"
                   />
                   <Button
                     type="submit"
-                    className=" size-9"
+                    className="size-9"
                     disabled={isLoading}
                     size="icon"
                   >
