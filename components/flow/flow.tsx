@@ -1,8 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import {
   ReactFlow,
-  MiniMap,
-  Controls,
   useNodesState,
   useEdgesState,
   addEdge,
@@ -20,11 +18,23 @@ import { v4 as uuid } from "uuid";
 import { Button } from "@/components/ui/button";
 import { EditorNodePropsType } from "@/types/types";
 import { serverSignOut } from "@/app/actions/auth";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, X, Send, Loader } from "lucide-react";
 import HandWritingCanvas from "./HandwritingCanvas";
 import { Toolbar } from "../ui/flow-ui/toolbar";
 import { useToolBarStore, ToolBarState } from "@/store/tool-bar-store";
 import clsx from "clsx";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useSideBarStore } from "@/store/sidebar-store";
+import { useChat } from "@ai-sdk/react";
+import { Input } from "../ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const proOptions = { hideAttribution: true };
 
@@ -53,6 +63,17 @@ export default function Flow() {
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
+  const { navMainButton, setNavMainButton } = useSideBarStore((state) => state);
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    stop,
+    reload,
+    error,
+  } = useChat({ api: "/api/gemini" });
 
   const onReconnectStart = useCallback(() => {
     edgeReconnectSuccessful.current = false;
@@ -216,6 +237,88 @@ export default function Flow() {
         <Panel position="bottom-center">
           <Toolbar className="inline-flex w-auto" />
         </Panel>
+
+        {navMainButton === "Ask AI" && (
+          <Panel className=" flex items-center justify-center h-screen w-screen">
+            <Card className="w-[350px]">
+              <CardHeader>
+                <CardTitle className="flex justify-between items-center">
+                  <div>Chat with Gemini AI</div>
+                  <button
+                    className=" hover:bg-gray-200 p-1 rounded-full"
+                    onClick={() => setNavMainButton("")}
+                  >
+                    <X />
+                  </button>
+                </CardTitle>
+
+                <CardDescription>
+                  Deploy your new project in one-click.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-[300px] pr-4">
+                <ScrollArea>
+                  {messages?.length === 0 && (
+                    <div className=" w-full mt-32 text-gray-200 items-center justify-center flex gap-3">
+                      No message yet
+                    </div>
+                  )}
+                  {messages?.map((messages, index) => (
+                    <div
+                      className="flex flex-col items-start space-y-2 px-4 py-3 text-sm"
+                      key={index}
+                    ></div>
+                  ))}
+                  {isLoading && (
+                    <div className=" w-full justify-center items-center flex gap-3">
+                      <Loader className=" animate-spin h-5 w-5  text-primary" />
+                      <button
+                        className="underline"
+                        type="button"
+                        onClick={() => stop()}
+                      >
+                        abort
+                      </button>
+                    </div>
+                  )}
+                  {error && (
+                    <div className=" flex justify-center items-center gap-3">
+                      <div>An error occurred</div>
+                      <button
+                        className=" underline "
+                        type="button"
+                        onClick={() => reload}
+                      >
+                        retry
+                      </button>
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <form
+                  onSubmit={handleSubmit}
+                  className=" flex w-full space-x-2 items-center"
+                >
+                  <Input
+                    value={input}
+                    onChange={handleInputChange}
+                    className=" flex-1"
+                    placeholder="Type your message here"
+                  />
+                  <Button
+                    type="submit"
+                    className=" size-9"
+                    disabled={isLoading}
+                    size="icon"
+                  >
+                    <Send className="size-4" />
+                  </Button>
+                </form>
+              </CardFooter>
+            </Card>
+          </Panel>
+        )}
       </ReactFlow>
     </div>
   );
