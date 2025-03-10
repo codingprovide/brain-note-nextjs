@@ -247,7 +247,7 @@ export default function Flow() {
         </Panel>
         {navMainButton === "Ask AI" && (
           <Panel className="flex items-center justify-center h-screen w-screen">
-            <Card className="w-[350px]">
+            <Card className="w-[500px]">
               <CardHeader>
                 <CardTitle className="flex justify-between items-center">
                   <div>Chat with Gemini AI</div>

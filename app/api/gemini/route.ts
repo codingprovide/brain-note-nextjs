@@ -24,11 +24,11 @@ const buildGoogleGenAIPrompt = (message: Message[] = []): Message[] => {
 };
 
 export async function POST(request: Request) {
-  const { message } = await request.json();
-  console.log(message);
+  const { messages } = await request.json();
+  console.log(messages);
   const stream = await streamText({
     model: google("gemini-1.5-pro"),
-    messages: buildGoogleGenAIPrompt(message),
+    messages: buildGoogleGenAIPrompt(messages),
     temperature: 0.7,
   });
   return stream?.toDataStreamResponse();
