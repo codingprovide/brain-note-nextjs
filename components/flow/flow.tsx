@@ -287,10 +287,16 @@ export default function Flow() {
                           )}
                         >
                           <ReactMarkdown
-                            children={message.content}
                             rehypePlugins={[remarkGfm]}
                             components={{
-                              code: ({ inline, children, ...props }) =>
+                              code: ({
+                                inline,
+                                children,
+                                ...props
+                              }: {
+                                inline?: boolean;
+                                children?: React.ReactNode;
+                              }) =>
                                 inline ? (
                                   <code
                                     {...props}
@@ -315,7 +321,9 @@ export default function Flow() {
                                 <li className="pl-4 space-y-1">{children}</li>
                               ),
                             }}
-                          />
+                          >
+                            {message.content}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     ))}
