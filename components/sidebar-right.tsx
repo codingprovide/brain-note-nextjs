@@ -1,9 +1,9 @@
-import * as React from "react"
-import { Plus } from "lucide-react"
+import * as React from "react";
+import { Plus } from "lucide-react";
 
-import { Calendars } from "@/components/calendars"
-import { DatePicker } from "@/components/date-picker"
-import { NavUser } from "@/components/nav-user"
+import { Calendars } from "@/components/calendars";
+import { DatePicker } from "@/components/date-picker";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -12,9 +12,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
   SidebarSeparator,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 // This is sample data.
 const data = {
@@ -37,7 +36,7 @@ const data = {
       items: ["Travel", "Reminders", "Deadlines"],
     },
   ],
-}
+};
 
 export function SidebarRight({
   ...props
@@ -67,5 +66,5 @@ export function SidebarRight({
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
