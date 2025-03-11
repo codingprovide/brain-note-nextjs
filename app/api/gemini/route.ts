@@ -4,7 +4,7 @@ import { initialMessage } from "@/lib/data";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_API_KEY });
 
-export const runtime = "node.js";
+export const runtime = "nodejs";
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
 
