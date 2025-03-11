@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   FileIcon,
   UploadCloudIcon,
-  CheckCircleIcon,
+  // CheckCircleIcon,
   AlertCircleIcon,
   FileTextIcon,
 } from "lucide-react";
@@ -24,14 +24,30 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 // Import API from your actual path
 import API from "@/lib/imageUpload/api";
+import clsx from "clsx";
 
-export default function PdfUploader() {
+export default function PdfUploader({
+  uploadedUrl,
+  setUploadedUrl,
+  saveStatus,
+  setSaveStatus,
+}: {
+  uploadedUrl: string;
+  saveStatus: string;
+  setSaveStatus: (status: string) => void;
+  setUploadedUrl: (url: string) => void;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadedUrl, setUploadedUrl] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+
+  // 論文元數據狀態
+  const [title, setTitle] = useState("");
+  const [authors, setAuthors] = useState("");
+  const [abstract, setAbstract] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Simulate progress during upload
@@ -55,7 +71,7 @@ export default function PdfUploader() {
     const selectedFile = e.target.files?.[0];
 
     if (selectedFile && selectedFile.type !== "application/pdf") {
-      setErrorMessage("請選擇 PDF 檔案");
+      setErrorMessage("Please select a PDF file first.");
       setFile(null);
       return;
     }
@@ -64,7 +80,7 @@ export default function PdfUploader() {
 
   const handleUpload = async () => {
     if (!file) {
-      setErrorMessage("請先選擇 PDF 檔案");
+      setErrorMessage("Please select a PDF file first.");
       return;
     }
 
@@ -77,11 +93,48 @@ export default function PdfUploader() {
       setUploadedUrl(url);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "上傳失敗，請稍後再試"
+        error instanceof Error
+          ? error.message
+          : "Upload failed. Please try again later."
       );
     } finally {
       clearInterval(progressInterval);
       setUploading(false);
+    }
+  };
+
+  // 呼叫 API 保存文件元數據
+  const handleSaveMetadata = async () => {
+    if (!uploadedUrl) return;
+
+    if (!file) {
+      setErrorMessage("Please select a PDF file first.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/documents/save", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          authors,
+          abstract,
+          pdfUrl: uploadedUrl,
+          fileName: file.name,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Save failed");
+      }
+      // const data = await response.json();
+      setSaveStatus("success");
+    } catch (error: unknown) {
+      setSaveStatus(error instanceof Error ? error.message : "Save failed");
     }
   };
 
@@ -103,7 +156,7 @@ export default function PdfUploader() {
 
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile && droppedFile.type !== "application/pdf") {
-      setErrorMessage("請選擇 PDF 檔案");
+      setErrorMessage("Please select a PDF file");
       return;
     }
     setFile(droppedFile || null);
@@ -118,9 +171,11 @@ export default function PdfUploader() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileTextIcon className="h-5 w-5 text-primary" />
-          上傳 PDF 檔案
+          Upload PDF File
         </CardTitle>
-        <CardDescription>選擇或拖放 PDF 檔案至下方區域進行上傳</CardDescription>
+        <CardDescription>
+          Select or drag and drop a PDF file into the area below to upload
+        </CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -162,8 +217,10 @@ export default function PdfUploader() {
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="font-medium">點擊或拖放檔案至此處</p>
-              <p className="text-sm text-muted-foreground">僅支援 PDF 檔案</p>
+              <p className="font-medium">Click or drag and drop files here</p>
+              <p className="text-sm text-muted-foreground">
+                Only PDF files are supported.
+              </p>
             </div>
           )}
         </div>
@@ -178,28 +235,48 @@ export default function PdfUploader() {
         {uploading && (
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-xs">
-              <span>上傳中...</span>
+              <span>Uploading...</span>
               <span>{uploadProgress}%</span>
             </div>
             <Progress value={uploadProgress} className="h-2" />
           </div>
         )}
 
+        {/* 當 PDF 上傳成功後，顯示填寫元數據表單 */}
         {uploadedUrl && (
-          <Alert className="mt-4 bg-primary/10 border-primary">
-            <CheckCircleIcon className="h-4 w-4 text-primary" />
-            <AlertDescription className="flex flex-col gap-1">
-              <span className="font-medium">上傳成功！</span>
-              <a
-                href={uploadedUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary underline underline-offset-2 truncate"
-              >
-                {uploadedUrl}
-              </a>
-            </AlertDescription>
-          </Alert>
+          <div className="mt-4 space-y-2">
+            <h3 className="text-lg font-medium">
+              Please fill in the paper metadata.
+            </h3>
+            <input
+              type="text"
+              placeholder="Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full border rounded p-2"
+            />
+            <input
+              type="text"
+              placeholder="Authors"
+              value={authors}
+              onChange={(e) => setAuthors(e.target.value)}
+              className="w-full border rounded p-2"
+            />
+            <textarea
+              placeholder="Abstract (optional)"
+              value={abstract}
+              onChange={(e) => setAbstract(e.target.value)}
+              className="w-full border rounded p-2"
+            />
+            <Button onClick={handleSaveMetadata} className="w-full">
+              Save Literature
+            </Button>
+            {saveStatus && (
+              <Alert className="mt-2">
+                <AlertDescription>{saveStatus}</AlertDescription>
+              </Alert>
+            )}
+          </div>
         )}
       </CardContent>
 
@@ -207,9 +284,9 @@ export default function PdfUploader() {
         <Button
           onClick={handleUpload}
           disabled={uploading || !file}
-          className="w-full"
+          className={clsx("w-full", { hidden: uploadedUrl })}
         >
-          {uploading ? "上傳中..." : "上傳 PDF"}
+          {uploading ? "Uploading..." : "Upload PDF"}
         </Button>
       </CardFooter>
     </Card>

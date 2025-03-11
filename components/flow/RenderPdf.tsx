@@ -10,12 +10,15 @@ import {
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import clsx from "clsx";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Handle, HandleType, Position } from "@xyflow/react";
 import { useReactFlow, NodeResizer, useNodeId } from "@xyflow/react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import PdfUploader from "../upload-pdf";
+import { Input } from "@/components/ui/input";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -53,14 +56,31 @@ const handles: handleProps[] = [
 
 const RenderPdf = memo(function RenderPdf({
   isConnectable,
-  data,
   selected,
-  dragging,
 }: EditorNodeTypeProps) {
   const nodeId = useNodeId();
   const { setNodes } = useReactFlow();
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
+  const [uploadedUrl, setUploadedUrl] = useState("");
+  const [saveStatus, setSaveStatus] = useState("");
+
+  const handlePrevPage = () => {
+    setPageNumber((prev) => (prev <= 1 ? 1 : prev - 1));
+  };
+
+  const handleNextPage = () => {
+    if (numPages === null) return;
+    setPageNumber((prev) => (prev >= numPages ? numPages : prev + 1));
+  };
+
+  const handlePageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const page = Number.parseInt(e.target.value);
+    if (numPages === null) return;
+    if (page >= 1 && page <= numPages) {
+      setPageNumber(page);
+    }
+  };
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
@@ -81,7 +101,41 @@ const RenderPdf = memo(function RenderPdf({
       )}
     >
       {/* Header with Delete Button */}
-      <CardHeader className="w-full p-1 rounded-t-xl  hover:bg-gray-100 flex items-center justify-between">
+      <CardHeader className="w-full flex-row p-3 rounded-t-xl  hover:bg-gray-100 flex items-center justify-between">
+        {saveStatus === "success" && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handlePrevPage}
+              disabled={pageNumber <= 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min={1}
+                max={numPages ?? undefined}
+                value={pageNumber}
+                onChange={handlePageChange}
+                className="w-16 text-center"
+              />
+              <span className="text-sm text-muted-foreground">
+                / {numPages}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleNextPage}
+              disabled={numPages === null || pageNumber >= numPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -121,17 +175,28 @@ const RenderPdf = memo(function RenderPdf({
           />
         ))}
 
-        <div>
-          <Document
-            file="https://pub-059988cbda3e4e14840e5d023c91d7c5.r2.dev/brain-note-storage/uploads/1741707023751-jimmunol.1400766.pdf" // 可替换为你的 PDF 文件路径或 URL
-            onLoadSuccess={onDocumentLoadSuccess}
-          >
-            <Page pageNumber={pageNumber} />
-          </Document>
-          <p>
-            第 {pageNumber} 页 / 共 {numPages} 页
-          </p>
-        </div>
+        {saveStatus !== "success" && (
+          <PdfUploader
+            uploadedUrl={uploadedUrl}
+            setUploadedUrl={setUploadedUrl}
+            setSaveStatus={setSaveStatus}
+            saveStatus={saveStatus}
+          />
+        )}
+
+        {saveStatus === "success" && (
+          <div>
+            <Document
+              file={uploadedUrl} // 可替换为你的 PDF 文件路径或 URL
+              onLoadSuccess={onDocumentLoadSuccess}
+            >
+              <Page pageNumber={pageNumber} />
+            </Document>
+            <p>
+              Page {pageNumber} / Total {numPages} Pages
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
