@@ -3,11 +3,11 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 export class API {
   private static r2 = new S3Client({
     region: "auto", // Cloudflare R2 的區域使用 'auto'
-    endpoint: process.env.NEXT_PUBLIC_ENDPOINT || "",
+    endpoint: process.env.NEXT_PUBLIC_R2_ENDPOINT || "",
     forcePathStyle: true, // 確保路徑風格正確
     credentials: {
-      accessKeyId: process.env.ACCESS_KEY_ID || "",
-      secretAccessKey: process.env.SECRET_ACCESS_KEY || "",
+      accessKeyId: process.env.NEXT_PUBLIC_ACCESS_KEY_ID || "",
+      secretAccessKey: process.env.NEXT_PUBLIC_SECRET_ACCESS_KEY || "",
     },
   });
 
@@ -35,9 +35,6 @@ export class API {
       // 返回可訪問的圖片 URL
       return `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${fileName}`;
     } catch (error) {
-      console.log("NEXT_PUBLIC_ENDPOINT:", process.env.NEXT_PUBLIC_ENDPOINT);
-      console.log("ACCESS_KEY_ID:", process.env.ACCESS_KEY_ID);
-      console.log("SECRET_ACCESS_KEY:", process.env.SECRET_ACCESS_KEY);
       console.error("上傳圖片失敗:", error);
       throw new Error("上傳圖片失敗，請稍後再試");
     }

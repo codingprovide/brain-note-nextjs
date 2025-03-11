@@ -23,6 +23,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { FaFilePdf } from "react-icons/fa6";
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
@@ -138,6 +139,12 @@ export function Toolbar({ className }: ToolbarProps) {
             label="Canvas"
             active={activeTool === "Canvas"}
             onClick={() => handleToolClick("Canvas")}
+          />
+          <ToolbarButton
+            icon={<FaFilePdf className="h-5 w-5" />}
+            label="Pdf"
+            active={activeTool === "Pdf"}
+            onClick={() => handleToolClick("Pdf")}
           />
           {/* cavas bar */}
           <Popover>
