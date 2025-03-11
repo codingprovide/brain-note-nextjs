@@ -37,13 +37,18 @@ import { Input } from "../ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import RenderPdf from "./RenderPdf";
 
 const proOptions = { hideAttribution: true };
 
 const initialNodes: EditorNodePropsType[] = [];
 const initialEdges = [{ id: "e1-2", source: "1", target: "2" }];
 
-const nodeTypes = { textNode: EditorNodeType, canvasNode: HandWritingCanvas };
+const nodeTypes = {
+  textNode: EditorNodeType,
+  canvasNode: HandWritingCanvas,
+  pdfNode: RenderPdf,
+};
 
 export default function Flow() {
   const [isSaving, setIsSaving] = useState(false);
@@ -167,14 +172,15 @@ export default function Flow() {
     if ((event.target as Element).classList.contains("react-flow__pane")) {
       const { clientX, clientY } =
         "changedTouches" in event ? event.changedTouches[0] : event;
-      let editorType = "";
-      if (activeTool === "Text") {
-        editorType = "textNode";
-      } else if (activeTool === "Canvas") {
-        editorType = "canvasNode";
-      } else {
-        return;
-      }
+      const editorMapping = {
+        Text: "textNode",
+        Canvas: "canvasNode",
+        Pdf: "pdfNode",
+      };
+
+      const editorType =
+        editorMapping[activeTool as keyof typeof editorMapping];
+      if (!editorType) return;
 
       const newNode = {
         id: uuid(),
