@@ -287,7 +287,7 @@ export default function Flow() {
                           )}
                         >
                           <ReactMarkdown
-                            rehypePlugins={[remarkGfm]}
+                            remarkPlugins={[remarkGfm]}
                             components={{
                               code: ({
                                 inline,
