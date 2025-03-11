@@ -37,6 +37,7 @@ import { Input } from "../ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import UploadPDF from "../upload-pdf";
 
 const proOptions = { hideAttribution: true };
 
@@ -382,6 +383,9 @@ export default function Flow() {
             </Card>
           </Panel>
         )}
+        {/* <Panel className="flex items-center justify-center h-screen w-screen">
+          <UploadPDF />
+        </Panel> */}
       </ReactFlow>
     </div>
   );
