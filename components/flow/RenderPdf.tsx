@@ -186,10 +186,7 @@ const RenderPdf = memo(function RenderPdf({
 
         {saveStatus === "success" && (
           <div>
-            <Document
-              file={uploadedUrl} // 可替换为你的 PDF 文件路径或 URL
-              onLoadSuccess={onDocumentLoadSuccess}
-            >
+            <Document file={uploadedUrl} onLoadSuccess={onDocumentLoadSuccess}>
               <Page pageNumber={pageNumber} />
             </Document>
             <p>

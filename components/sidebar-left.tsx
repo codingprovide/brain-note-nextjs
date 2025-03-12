@@ -15,7 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { NavFavorites } from "@/components/nav-favorites";
+import { NavMyPaper } from "@/components/nav-favorites";
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavWorkspaces } from "@/components/nav-workspaces";
@@ -26,6 +26,9 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
+
+import { useEffect } from "react";
+import { useDocumentDataStore } from "@/store/documents-store";
 
 // This is sample data.
 const data = {
@@ -257,9 +260,52 @@ const data = {
   ],
 };
 
+interface Document {
+  id: string;
+  title?: string;
+  authors?: string;
+  abstract?: string;
+  pdfUrl: string;
+  userId: string;
+  fileName: string;
+  type: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export function SidebarLeft({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
+  // const [documents, setDocuments] = useState<Document[]>([]);
+  // const [loading, setLoading] = useState<boolean>(true);
+  // const [error, setError] = useState<string | null>(null);
+
+  const { setDocuments, documents, loading, setError, setLoading } =
+    useDocumentDataStore((state) => state);
+
+  useEffect(() => {
+    async function fetchDocuments() {
+      try {
+        const response = await fetch("/api/documents/pdf/get");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: Document[] = await response.json();
+        setDocuments(data);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("An unexpected error occurred");
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <Sidebar className="border-r-0" {...props}>
       <SidebarHeader>
@@ -267,7 +313,7 @@ export function SidebarLeft({
         <NavMain items={data.navMain} />
       </SidebarHeader>
       <SidebarContent>
-        <NavFavorites favorites={data.favorites} />
+        <NavMyPaper papers={documents || []} loading={loading} />
         <NavWorkspaces workspaces={data.workspaces} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>

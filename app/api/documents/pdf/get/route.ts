@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 
 const prisma = new PrismaClient();
 
-export async function POST(request: Request) {
+export async function GET() {
   const session = await auth();
   if (!session?.user?.email) {
     return NextResponse.json({ error: "未授權" }, { status: 401 });
@@ -21,28 +21,18 @@ export async function POST(request: Request) {
 
   const userId = user.id;
 
-  const { title, authors, abstract, pdfUrl, fileName } = await request.json();
-
-  if (!pdfUrl || !fileName) {
-    return NextResponse.json({ error: "PDF 上傳失敗" }, { status: 400 });
-  }
-
   try {
-    const document = await prisma.document.create({
-      data: {
-        title,
-        authors,
-        abstract,
-        pdfUrl,
-        fileName,
-        user: { connect: { id: userId } },
+    const documents = await prisma.document.findMany({
+      where: {
+        userId,
+        type: "pdf",
       },
     });
-    return NextResponse.json(document, { status: 201 });
+    return NextResponse.json(documents);
   } catch (error) {
-    console.error("保存文件失敗:", error);
+    console.error("Error fetching documents:", error);
     return NextResponse.json(
-      { error: "保存文件失敗，請稍後再試" },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }

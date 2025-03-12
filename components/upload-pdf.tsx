@@ -25,6 +25,20 @@ import { cn } from "@/lib/utils";
 // Import API from your actual path
 import API from "@/lib/imageUpload/api";
 import clsx from "clsx";
+import { useDocumentDataStore } from "@/store/documents-store";
+
+interface Document {
+  id: string;
+  title?: string;
+  authors?: string;
+  abstract?: string;
+  pdfUrl: string;
+  userId: string;
+  fileName: string;
+  type: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function PdfUploader({
   uploadedUrl,
@@ -37,6 +51,9 @@ export default function PdfUploader({
   setSaveStatus: (status: string) => void;
   setUploadedUrl: (url: string) => void;
 }) {
+  const { setDocuments, setError, setLoading } = useDocumentDataStore(
+    (state) => state
+  );
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -103,6 +120,25 @@ export default function PdfUploader({
     }
   };
 
+  async function fetchDocuments() {
+    try {
+      const response = await fetch("/api/documents/pdf/get");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data: Document[] = await response.json();
+      setDocuments(data);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // 呼叫 API 保存文件元數據
   const handleSaveMetadata = async () => {
     if (!uploadedUrl) return;
@@ -113,7 +149,7 @@ export default function PdfUploader({
     }
 
     try {
-      const response = await fetch("/api/documents/save", {
+      const response = await fetch("/api/documents/pdf/save", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -124,6 +160,7 @@ export default function PdfUploader({
           abstract,
           pdfUrl: uploadedUrl,
           fileName: file.name,
+          type: "pdf",
         }),
       });
 
@@ -131,8 +168,9 @@ export default function PdfUploader({
         const errorData = await response.json();
         throw new Error(errorData.error || "Save failed");
       }
-      // const data = await response.json();
       setSaveStatus("success");
+      setLoading(true);
+      fetchDocuments();
     } catch (error: unknown) {
       setSaveStatus(error instanceof Error ? error.message : "Save failed");
     }
