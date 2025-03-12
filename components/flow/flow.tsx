@@ -233,7 +233,7 @@ export default function Flow() {
       >
         {/* <Controls /> */}
         {/* <MiniMap /> */}
-        <Panel position="top-right">
+        <Panel position="top-right" className="hidden">
           <Button onClick={onSave} disabled={isSaving}>
             {isSaving ? (
               <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />

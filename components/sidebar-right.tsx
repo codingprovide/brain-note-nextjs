@@ -1,7 +1,6 @@
 import * as React from "react";
 import { Plus } from "lucide-react";
 
-import { Calendars } from "@/components/calendars";
 import { DatePicker } from "@/components/date-picker";
 import { NavUser } from "@/components/nav-user";
 import {
@@ -14,6 +13,8 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
+
+import clsx from "clsx";
 
 // This is sample data.
 const data = {
@@ -38,22 +39,29 @@ const data = {
   ],
 };
 
-export function SidebarRight({
-  ...props
-}: React.ComponentProps<typeof Sidebar>) {
+interface SidebarRightProps {
+  rightSidebarOpen: boolean;
+}
+
+export function SidebarRight({ rightSidebarOpen }: SidebarRightProps) {
+  console.log(rightSidebarOpen);
   return (
     <Sidebar
-      collapsible="none"
-      className="sticky hidden lg:flex top-0 h-svh border-l"
-      {...props}
+      side="right"
+      className={clsx(
+        "transition-all duration-300 fixed right-0 top-0 z-50 h-full border-l",
+        {
+          "translate-x-0": rightSidebarOpen,
+          "translate-x-full": !rightSidebarOpen,
+        }
+      )}
     >
-      <SidebarHeader className="h-16 border-b border-sidebar-border">
+      <SidebarHeader className="flex items-center justify-between p-4 border-b">
         <NavUser user={data.user} />
       </SidebarHeader>
       <SidebarContent>
         <DatePicker />
         <SidebarSeparator className="mx-0" />
-        <Calendars calendars={data.calendars} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

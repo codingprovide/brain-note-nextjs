@@ -17,8 +17,6 @@ import {
 
 import { NavMyPaper } from "@/components/nav-favorites";
 import { NavMain } from "@/components/nav-main";
-import { NavSecondary } from "@/components/nav-secondary";
-import { NavWorkspaces } from "@/components/nav-workspaces";
 import { TeamSwitcher } from "@/components/team-switcher";
 import {
   Sidebar,
@@ -314,8 +312,6 @@ export function SidebarLeft({
       </SidebarHeader>
       <SidebarContent>
         <NavMyPaper papers={documents || []} loading={loading} />
-        <NavWorkspaces workspaces={data.workspaces} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
