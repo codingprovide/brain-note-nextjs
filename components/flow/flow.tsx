@@ -70,6 +70,10 @@ export default function Flow() {
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
+
+  const { selectedNodes, addNodes, getPointerPosition } = useReactFlow();
+  const [copiedNodes, setCopiedNodes] = useState([]);
+
   const { navMainButton, setNavMainButton } = useSideBarStore((state) => state);
   const {
     messages,
@@ -163,7 +167,6 @@ export default function Flow() {
     }
   }, [setNodes, setEdges, setViewport]);
 
-  //當滑鼠連續點擊兩次新增節點
   const handleAddNode = (
     event:
       | React.MouseEvent<HTMLDivElement, MouseEvent>
@@ -231,8 +234,6 @@ export default function Flow() {
         onReconnectEnd={onReconnectEnd}
         panOnScroll
       >
-        {/* <Controls /> */}
-        {/* <MiniMap /> */}
         <Panel position="top-right" className="hidden">
           <Button onClick={onSave} disabled={isSaving}>
             {isSaving ? (

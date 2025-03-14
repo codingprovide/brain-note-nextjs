@@ -24,8 +24,8 @@ export default function DashboardLayout({
 }) {
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   return (
-    <SidebarProvider className="">
-      <SidebarLeft className="" />
+    <SidebarProvider>
+      <SidebarLeft />
       <SidebarInset>
         <header className="fixed top-0 flex h-16 shrink-0 items-center gap-2 bg-background z-50 w-full">
           <SidebarTrigger />

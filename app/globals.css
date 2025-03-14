@@ -127,3 +127,103 @@ body {
 .react-flow.cursor-crosshair .react-flow__pane {
   cursor: crosshair !important;
 }
+
+
+/* Details */
+.details {
+  display: flex;
+  gap: 0.25rem;
+  margin: 10px 0;
+  padding: 0.5rem;
+  background-color: rgb(255, 255, 255);
+}
+
+.details summary {
+  font-weight: 700;
+}
+
+.details > button {
+  align-items: center;
+  background: transparent;
+  border-radius: 4px;
+  display: flex;
+  font-size: 0.625rem;
+  height: 1.25rem;
+  justify-content: center;
+  line-height: 1;
+  margin-top: 0.1rem;
+  padding: 0;
+  width: 1.25rem;
+}
+
+.details > button:hover {
+  background-color: var(--gray-3);
+}
+
+.details > button::before {
+  content: '\25B6';
+}
+
+summary {
+  list-style: none; /* Remove default marker */
+}
+
+.details.is-open > button::before {
+  transform: rotate(90deg);
+}
+
+.details > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.details > div > [data-type="detailsContent"] > :last-child {
+  margin-bottom: 0.5rem;
+}
+
+.details .details {
+  margin: 0.5rem 0;
+}
+
+
+/* Task list specific styles */
+ul[data-type="taskList"] { 
+  list-style: none;
+  margin-left: 0;
+  padding: 0;
+}
+
+ul[data-type="taskList"] li {
+  align-items: center; 
+  display: flex;
+}
+
+ul[data-type="taskList"] li > label {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-right: 0.5rem;
+  user-select: none;
+}
+
+ul[data-type="taskList"] li > div {
+  display: flex;
+  align-items: center; 
+  flex: 1 1 auto;
+}
+
+ul[data-type="taskList"] li p {
+  margin: 0; 
+  line-height: 1.5; 
+}
+
+
+ul[data-type="taskList"] input[type="checkbox"] {
+  cursor: pointer;
+}
+
+ul[data-type="taskList"] ul[data-type="taskList"] {
+  margin: 0;
+}

@@ -17,7 +17,6 @@ import {
 
 import { NavMyPaper } from "@/components/nav-favorites";
 import { NavMain } from "@/components/nav-main";
-import { TeamSwitcher } from "@/components/team-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +26,7 @@ import {
 
 import { useEffect } from "react";
 import { useDocumentDataStore } from "@/store/documents-store";
+import Image from "next/image";
 
 // This is sample data.
 const data = {
@@ -274,15 +274,12 @@ interface Document {
 export function SidebarLeft({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
-  // const [documents, setDocuments] = useState<Document[]>([]);
-  // const [loading, setLoading] = useState<boolean>(true);
-  // const [error, setError] = useState<string | null>(null);
-
   const { setDocuments, documents, loading, setError, setLoading } =
     useDocumentDataStore((state) => state);
 
   useEffect(() => {
     async function fetchDocuments() {
+      setLoading(true);
       try {
         const response = await fetch("/api/documents/pdf/get");
         if (!response.ok) {
@@ -307,7 +304,19 @@ export function SidebarLeft({
   return (
     <Sidebar className="border-r-0" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <div className=" flex h-full flex-col">
+          <div className="flex items-center gap-2 px-2 ">
+            <Image
+              src={"/Brain-note.png"}
+              alt="Brain-note"
+              width={30}
+              height={30}
+              className=" my-3"
+            />
+            <h2 className="text-lg font-semibold">Brain-Note</h2>
+          </div>
+        </div>
+
         <NavMain items={data.navMain} />
       </SidebarHeader>
       <SidebarContent>

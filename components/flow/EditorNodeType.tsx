@@ -4,23 +4,27 @@ import clsx from "clsx";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Handle, HandleType, Position } from "@xyflow/react";
 import { useReactFlow, NodeResizer, useNodeId } from "@xyflow/react";
-import { Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+
 import Editor from "../tiptap/Editor";
 import { JSONContent } from "@tiptap/react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import RenderNodeContent from "../ui/render-note-content";
+// import RenderNodeContent from "../ui/render-note-content";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuGroup,
+  DropdownMenuShortcut,
+} from "@/components/ui/dropdown-menu";
+import { Ellipsis } from "lucide-react";
+import { useOnSelectionChange, useNodes } from "@xyflow/react";
+import { useNodeStore } from "@/store/nodes-store";
 
 // 共享樣式常數
-const cardStyle = {
-  minWidth: 200,
-  minHeight: 200,
+const cardSize = {
+  minWidth: 274,
+  minHeight: 68,
 };
 
 interface EditorNodeTypeProps {
@@ -56,8 +60,13 @@ const EditorNodeType = memo(function EditorNodeType({
   const nodeId = useNodeId();
   const { setNodes } = useReactFlow();
   const [isEditable, setIsEditable] = useState(false);
-
+  const [isVisible, setIsVisible] = useState(false);
+  const nodes = useNodes();
   const nodeRef = useRef<HTMLDivElement>(null);
+
+  const { setSelectedNodes, setSelectedNodeIds } = useNodeStore(
+    (state) => state
+  );
 
   useEffect(() => {
     if (dragging) {
@@ -88,46 +97,70 @@ const EditorNodeType = memo(function EditorNodeType({
     [nodeId, setNodes]
   );
 
+  // 選取節點時更新選取狀態
+  const onChange = useCallback(() => {
+    if (nodeId === null) return;
+    const nodesMap = new Map(nodes.map((item) => [item.id, item]));
+    const node = nodesMap.get(nodeId);
+    if (!node) return;
+
+    setSelectedNodeIds((prevIds) => {
+      if (prevIds.has(nodeId)) {
+        return prevIds;
+      }
+      const newIds = new Set(prevIds);
+      newIds.add(nodeId);
+      setSelectedNodes((prevNodes) => [...prevNodes, node]);
+      return newIds;
+    });
+  }, [nodeId, nodes, setSelectedNodes, setSelectedNodeIds]);
+
+  useOnSelectionChange({
+    onChange,
+  });
+
   // when click other node , the editor not close
   // when edior is open , drag the node editor should be close, when drag end, editor should be open
 
   return (
     <Card
-      style={cardStyle}
+      style={cardSize}
       className={clsx(
-        "w-full h-full relative bg-white flex flex-col border-solid border border-gray-400",
+        "w-full h-full relative bg-white flex flex-col border-solid border border-gray-400 box-border",
         { nodrag: isEditable },
         { "border-solid border-2 border-gray-700": selected }
       )}
       ref={nodeRef}
+      onMouseEnter={() => setIsVisible(true)}
+      onMouseLeave={() => setIsVisible(false)}
     >
       {/* Header with Delete Button */}
-      <CardHeader className="w-full p-1 rounded-t-xl  hover:bg-gray-100 flex items-center justify-between">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                className="p-1 w-8 h-8"
-                onClick={handleDeleteNode}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Delete the Node</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+      <CardHeader className=" w-full h-5 p-1 rounded-t-xl  hover:bg-gray-100 flex flex-row items-center justify-end ">
+        <DropdownMenu>
+          <DropdownMenuTrigger className={clsx(!isVisible && "opacity-0")}>
+            <Ellipsis />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={handleDeleteNode} className=" gap-12">
+                Delete
+                <DropdownMenuShortcut>Backspace</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
 
       {/* Content area with Node Resizer, Editor / Render content, and connection Handles */}
-      <CardContent className="overflow-hidden p-3 ">
+      <CardContent
+        className="overflow-hidden pt-1 pb-2 px-3
+       "
+      >
         <NodeResizer
-          minWidth={200}
-          minHeight={200}
+          minWidth={cardSize.minWidth}
+          minHeight={cardSize.minHeight}
           isVisible={selected}
-          lineClassName="border border-[0.5px] border-transparent"
+          lineClassName="border border-[10px] border-transparent"
           handleClassName="bg-transparent border-transparent"
         />
 
@@ -143,17 +176,8 @@ const EditorNodeType = memo(function EditorNodeType({
         ))}
 
         {/* 編輯器或靜態內容 */}
-        {isEditable ? (
-          <Editor
-            className={clsx(
-              "bg-white min-h-full focus:outline-none",
-              "prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl",
-              "prose-th:bg-black prose-strong:text-inherit prose-p:m-0"
-            )}
-            data={data}
-            onContentChange={handleContentChange}
-            isEditable={isEditable}
-          />
+        {/* {isEditable ? (
+    
         ) : (
           <RenderNodeContent
             className={clsx(
@@ -163,7 +187,18 @@ const EditorNodeType = memo(function EditorNodeType({
             )}
             html={data.html ?? ""}
           />
-        )}
+        )} */}
+
+        <Editor
+          className={clsx(
+            "bg-white min-h-full focus:outline-none",
+            "prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl",
+            "prose-th:bg-black prose-strong:text-inherit prose-p:m-0"
+          )}
+          data={data}
+          onContentChange={handleContentChange}
+          isEditable={isEditable}
+        />
       </CardContent>
     </Card>
   );

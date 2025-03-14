@@ -81,7 +81,6 @@ export default function HandWritingCanvas({
   const [isResize, setIsResize] = useState(false);
   const [cardSize, setCardSize] = useState({ width: 500, height: 500 });
 
-  // useEffect(() => {
   //   if (!containerRef.current) return;
   //   if (!isResize) return;
   //   const container = containerRef.current;
@@ -98,7 +97,6 @@ export default function HandWritingCanvas({
   //     resizeObserver.disconnect();
   //   };
   // }, [isResize]);
-
   useEffect(() => {
     setStageSize({
       width: cardSize.width - 74,

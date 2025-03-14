@@ -27,7 +27,6 @@ import Table from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
-import { BlockquoteFigure } from "./extensions/BlockquoteFigure";
 import Emoji, { gitHubEmojis } from "@tiptap-pro/extension-emoji";
 import { emojiSuggestion } from "./extensions/EmojiSuggestion";
 import { ImageBlock } from "./extensions/ImageBlock";
@@ -36,6 +35,7 @@ import { TrailingNode } from "./extensions/TrailingNode";
 import { CodeBlock } from "./extensions/CodeBlock";
 import { Columns, Column } from "./extensions/MultiColumn";
 import { Document } from "./extensions/Document";
+import Blockquote from "@tiptap/extension-blockquote";
 
 const extensions = [
   Document,
@@ -61,21 +61,26 @@ const extensions = [
   TableRow,
   CharacterCount.configure({ limit: 50000 }),
   Focus,
-  Placeholder.configure({
-    includeChildren: true,
-    showOnlyCurrent: false,
-    placeholder: () => "",
-  }),
   UniqueID.configure({
     types: ["paragraph", "heading", "blockquote", "codeBlock", "table"],
     filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
-  DetailsSummary,
-  DetailsContent,
   Details.configure({
     persist: true,
     HTMLAttributes: {
       class: "details",
+    },
+  }),
+  DetailsSummary,
+  DetailsContent,
+  Placeholder.configure({
+    includeChildren: true,
+    placeholder: ({ node }) => {
+      if (node.type.name === "detailsSummary") {
+        return "Summary";
+      }
+
+      return "";
     },
   }),
   Superscript,
@@ -183,7 +188,7 @@ const extensions = [
     multicolor: true,
     HTMLAttributes: { class: "rounded-md px-1 py-0.5 box-decoration-clone" },
   }),
-  BlockquoteFigure,
+  Blockquote,
 ];
 
 export default function Editor({
