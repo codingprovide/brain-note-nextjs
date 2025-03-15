@@ -27,18 +27,18 @@ import API from "@/lib/imageUpload/api";
 import clsx from "clsx";
 import { useDocumentDataStore } from "@/store/documents-store";
 
-interface Document {
-  id: string;
-  title?: string;
-  authors?: string;
-  abstract?: string;
-  pdfUrl: string;
-  userId: string;
-  fileName: string;
-  type: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// interface Document {
+//   id: string;
+//   title?: string;
+//   authors?: string;
+//   abstract?: string;
+//   pdfUrl: string;
+//   userId: string;
+//   fileName: string;
+//   type: string;
+//   createdAt: string;
+//   updatedAt: string;
+// }
 
 export default function PdfUploader({
   uploadedUrl,
@@ -126,8 +126,8 @@ export default function PdfUploader({
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data: Document[] = await response.json();
-      setDocuments(data);
+      const { documents } = await response.json();
+      setDocuments(documents);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);

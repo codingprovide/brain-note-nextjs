@@ -18,8 +18,6 @@ import {
   DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
 import { Ellipsis } from "lucide-react";
-import { useOnSelectionChange, useNodes } from "@xyflow/react";
-import { useNodeStore } from "@/store/nodes-store";
 
 // 共享樣式常數
 const cardSize = {
@@ -61,12 +59,7 @@ const EditorNodeType = memo(function EditorNodeType({
   const { setNodes } = useReactFlow();
   const [isEditable, setIsEditable] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const nodes = useNodes();
   const nodeRef = useRef<HTMLDivElement>(null);
-
-  const { setSelectedNodes, setSelectedNodeIds, selectedNodes } = useNodeStore(
-    (state) => state
-  );
 
   useEffect(() => {
     if (dragging) {
@@ -78,12 +71,10 @@ const EditorNodeType = memo(function EditorNodeType({
     }
   }, [dragging, selected]);
 
-  // 刪除節點
   const handleDeleteNode = useCallback(() => {
     setNodes((nodes) => nodes.filter((node) => node.id !== nodeId));
   }, [nodeId, setNodes]);
 
-  // 編輯器內容改變時更新節點資料
   const handleContentChange = useCallback(
     (content: JSONContent | undefined, html: string | undefined) => {
       setNodes((nodes) =>
@@ -96,35 +87,6 @@ const EditorNodeType = memo(function EditorNodeType({
     },
     [nodeId, setNodes]
   );
-
-  // 選取節點時更新選取狀態
-  const onChange = useCallback(() => {
-    if (nodeId === null) return;
-    const nodesMap = new Map(nodes.map((item) => [item.id, item]));
-    const node = nodesMap.get(nodeId);
-    if (!node) return;
-
-    setSelectedNodeIds((prevIds) => {
-      if (prevIds.has(nodeId)) {
-        return prevIds;
-      }
-      const newIds = new Set(prevIds);
-      newIds.add(nodeId);
-      setSelectedNodes((prevNodes) => [...prevNodes, node]);
-      return newIds;
-    });
-  }, [nodeId, nodes, setSelectedNodes, setSelectedNodeIds]);
-
-  useOnSelectionChange({
-    onChange,
-  });
-
-  useEffect(() => {
-    console.log("更新後的 selectedNodes", selectedNodes);
-  }, [selectedNodes]);
-
-  // when click other node , the editor not close
-  // when edior is open , drag the node editor should be close, when drag end, editor should be open
 
   return (
     <Card

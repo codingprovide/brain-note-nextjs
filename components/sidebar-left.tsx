@@ -258,18 +258,18 @@ const data = {
   ],
 };
 
-interface Document {
-  id: string;
-  title?: string;
-  authors?: string;
-  abstract?: string;
-  pdfUrl: string;
-  userId: string;
-  fileName: string;
-  type: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// interface Document {
+//   id: string;
+//   title?: string;
+//   authors?: string;
+//   abstract?: string;
+//   pdfUrl: string;
+//   userId: string;
+//   fileName: string;
+//   type: string;
+//   createdAt: string;
+//   updatedAt: string;
+// }
 
 export function SidebarLeft({
   ...props

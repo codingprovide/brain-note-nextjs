@@ -41,6 +41,7 @@ import RenderPdf from "./RenderPdf";
 import { useNodeStore } from "@/store/nodes-store";
 import { JSONContent } from "@tiptap/react";
 import { useKeyPress } from "@xyflow/react";
+import { useNodes } from "@xyflow/react";
 
 const proOptions = { hideAttribution: true };
 
@@ -67,6 +68,25 @@ export default function Flow() {
   const { activeTool, setActiveTool } = useToolBarStore<ToolBarState>(
     (state) => state
   );
+  const {
+    selectedNodes,
+    copyPressed,
+    setCopyPressed,
+    pastePressed,
+    setPastePressed,
+    setSelectedNodeIds,
+    setSelectedNodes,
+  } = useNodeStore((state) => state);
+
+  const currentNodes = useNodes();
+
+  useEffect(() => {
+    const currentSelectedNodes = currentNodes?.filter((node) => node?.selected);
+    if (currentSelectedNodes) {
+      setSelectedNodes(currentSelectedNodes);
+      setSelectedNodeIds(new Set(currentSelectedNodes.map((node) => node.id)));
+    }
+  }, [nodes, setSelectedNodes, setSelectedNodeIds, currentNodes]);
 
   const { screenToFlowPosition, setViewport } = useReactFlow();
   const onConnect = useCallback(
@@ -74,16 +94,16 @@ export default function Flow() {
     [setEdges]
   );
 
-  const {
-    selectedNodes,
-    copyPressed,
-    setCopyPressed,
-    pastePressed,
-    setPastePressed,
-  } = useNodeStore((state) => state);
+  const isCtrlCPressed = useKeyPress(["Control+c"]);
+  const isCtrlVPressed = useKeyPress(["Control+v"]);
 
-  setCopyPressed(useKeyPress("Ctrl+c"));
-  setPastePressed(useKeyPress("Ctrl+v"));
+  useEffect(() => {
+    setCopyPressed(isCtrlCPressed);
+  }, [isCtrlCPressed, setCopyPressed]);
+
+  useEffect(() => {
+    setPastePressed(isCtrlVPressed);
+  }, [isCtrlVPressed, setPastePressed]);
 
   const [clipboard, setClipboard] = useState<EditorNodePropsType[]>([]);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({
@@ -93,29 +113,21 @@ export default function Flow() {
 
   // 複製邏輯：計算選取節點的相對位置，並存入 clipboard
   const handleCopy = useCallback(() => {
-    // Filter out undefined nodes
     const validNodes = selectedNodes.filter((node) => node !== undefined);
-
     if (validNodes.length === 0) return;
 
-    // 取得所有選取節點中最小的 x 與 y 作為左上角
     const minX = Math.min(...validNodes.map((node) => node.position.x));
     const minY = Math.min(...validNodes.map((node) => node.position.y));
 
-    // 將節點位置轉為相對於左上角的偏移量
     const relativeNodes = validNodes.map((node) => ({
       id: node.id,
-      position: {
-        x: node.position.x - minX,
-        y: node.position.y - minY,
-      },
-      data: {
-        content: node.data?.content as JSONContent,
-      },
+      position: { x: node.position.x - minX, y: node.position.y - minY },
+      data: { content: node.data?.content as JSONContent },
       type: node.type || "textNode",
     }));
 
     setClipboard(relativeNodes);
+    console.log("Copied nodes:", relativeNodes); // 調試用
   }, [selectedNodes]);
 
   // 貼上邏輯：根據當前滑鼠位置，依據先前存的相對位置計算出新節點的位置
@@ -125,20 +137,18 @@ export default function Flow() {
       y: mousePosition.y,
     });
 
-    // 為每個節點生成新的 id 並加上貼上時的偏移
     const newNodes: EditorNodePropsType[] = clipboard.map((node) => ({
       id: uuid(),
       position: {
         x: pastePosition.x + node.position.x,
         y: pastePosition.y + node.position.y,
       },
-      data: {
-        content: node.data?.content as JSONContent,
-      },
-      type: node.type || "textNode",
+      data: { content: node.data?.content as JSONContent },
+      type: node.type, // 使用保存的 type
     }));
 
     setNodes((nds) => nds.concat(newNodes));
+    console.log("Pasted nodes:", newNodes); // 調試用
   }, [
     clipboard,
     mousePosition.x,
@@ -150,11 +160,21 @@ export default function Flow() {
   useEffect(() => {
     if (copyPressed) {
       handleCopy();
+      setCopyPressed(false); // 重置狀態
     }
     if (pastePressed) {
       handlePaste();
+      setPastePressed(false);
+      setClipboard([]); // 貼上後清空剪貼板
     }
-  }, [copyPressed, handleCopy, handlePaste, pastePressed]);
+  }, [
+    copyPressed,
+    handleCopy,
+    pastePressed,
+    handlePaste,
+    setCopyPressed,
+    setPastePressed,
+  ]);
 
   const { navMainButton, setNavMainButton } = useSideBarStore((state) => state);
   const {
@@ -316,16 +336,6 @@ export default function Flow() {
         onReconnectEnd={onReconnectEnd}
         panOnScroll
         onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
-        onKeyDown={(e) => {
-          if (e.ctrlKey && e.key === "c") {
-            e.preventDefault();
-            handleCopy();
-          }
-          if (e.ctrlKey && e.key === "v") {
-            e.preventDefault();
-            handlePaste();
-          }
-        }}
       >
         <Panel position="top-right" className="hidden">
           <Button onClick={onSave} disabled={isSaving}>

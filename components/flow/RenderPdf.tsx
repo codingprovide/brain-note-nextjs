@@ -14,14 +14,15 @@ import { memo, useCallback, useState } from "react";
 import { Handle, HandleType, Position } from "@xyflow/react";
 import { useReactFlow, NodeResizer, useNodeId } from "@xyflow/react";
 import { Document, Page, pdfjs } from "react-pdf";
-import "react-pdf/dist/esm/Page/TextLayer.css";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/esm/Page/TextLayer.css";
+
 import PdfUploader from "../upload-pdf";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
+  "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
   import.meta.url
 ).toString();
 

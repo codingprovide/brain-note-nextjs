@@ -91,7 +91,6 @@
     "lucide-react": "^0.479.0",
     "next": "15.1.6",
     "next-auth": "^5.0.0-beta.25",
-    "pdfjs-dist": "4.8.69",
     "perfect-freehand": "^1.2.2",
     "react": "^19.0.0",
     "react-day-picker": "8.10.1",
