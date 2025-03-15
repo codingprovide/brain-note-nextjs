@@ -64,7 +64,7 @@ const EditorNodeType = memo(function EditorNodeType({
   const nodes = useNodes();
   const nodeRef = useRef<HTMLDivElement>(null);
 
-  const { setSelectedNodes, setSelectedNodeIds } = useNodeStore(
+  const { setSelectedNodes, setSelectedNodeIds, selectedNodes } = useNodeStore(
     (state) => state
   );
 
@@ -118,6 +118,10 @@ const EditorNodeType = memo(function EditorNodeType({
   useOnSelectionChange({
     onChange,
   });
+
+  useEffect(() => {
+    console.log("更新後的 selectedNodes", selectedNodes);
+  }, [selectedNodes]);
 
   // when click other node , the editor not close
   // when edior is open , drag the node editor should be close, when drag end, editor should be open
