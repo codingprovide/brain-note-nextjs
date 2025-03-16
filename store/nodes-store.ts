@@ -12,9 +12,20 @@ export interface NodeStoreState {
   setCopyPressed: (copyPressed: SetStateAction<boolean>) => void;
   pastePressed: boolean;
   setPastePressed: (pastePressed: SetStateAction<boolean>) => void;
+  progress: number;
+  setProgress: (progress: SetStateAction<number>) => void;
+  isRestoring: boolean;
+  setIsRestoring: (isRestoring: boolean) => void;
 }
 
 export const useNodeStore = create<NodeStoreState>((set) => ({
+  isRestoring: false,
+  setIsRestoring: (isRestoring) => set({ isRestoring }),
+  progress: 0,
+  setProgress: (action) =>
+    set((state) => ({
+      progress: typeof action === "function" ? action(state.progress) : action,
+    })),
   selectedNodeIds: new Set(),
   selectedNodes: [],
   setSelectedNodes: (action) =>

@@ -17,7 +17,6 @@ import "@xyflow/react/dist/style.css";
 import { v4 as uuid } from "uuid";
 import { Button } from "@/components/ui/button";
 import { EditorNodePropsType } from "@/types/types";
-import { serverSignOut } from "@/app/actions/auth";
 import { X, Send, Loader } from "lucide-react";
 import HandWritingCanvas from "./HandwritingCanvas";
 import { Toolbar } from "../ui/flow-ui/toolbar";
@@ -43,6 +42,7 @@ import { JSONContent } from "@tiptap/react";
 import { useKeyPress } from "@xyflow/react";
 import { useNodes } from "@xyflow/react";
 import debounce from "lodash.debounce";
+
 // import * as Y from "yjs";
 // import SupabaseProvider from "y-supabase";
 // import { createClient } from "@/utils/server";
@@ -64,7 +64,6 @@ export default function Flow() {
   const [isSaving, setIsSaving] = useState(false);
   console.log(isSaving);
   const hasRestored = useRef(false);
-  const [isRestoring, setIsRestoring] = useState(false);
   const edgeReconnectSuccessful = useRef(true);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
 
@@ -85,11 +84,28 @@ export default function Flow() {
     setPastePressed,
     setSelectedNodeIds,
     setSelectedNodes,
+    setProgress,
+    isRestoring,
+    setIsRestoring,
   } = useNodeStore((state) => state);
   const { screenToFlowPosition, setViewport } = useReactFlow();
   const currentNodes = useNodes();
   const onRestore = useCallback(async () => {
+    setProgress(0);
     setIsRestoring(true); // 開始 Loading
+
+    // Simulate progress increments
+    const interval = setInterval(() => {
+      setProgress((prevProgress) => {
+        // Slowly approach 90% to give time for the actual request
+        if (prevProgress >= 90) {
+          clearInterval(interval);
+          return 90;
+        }
+        return prevProgress + 10;
+      });
+    }, 300);
+
     try {
       const response = await fetch("/api/note/get");
 
@@ -100,7 +116,7 @@ export default function Flow() {
       const data = await response.json();
       if (data.flowData !== null) {
         const flow = data.flowData;
-        const { x = 0, y = 0, zoom = 1 } = flow.viewport;
+        const { x, y, zoom } = flow.viewport;
 
         setNodes(flow.nodes);
         setEdges(flow.edges);
@@ -124,11 +140,19 @@ export default function Flow() {
         const newNoteData = await createResponse.json();
         setNoteId(newNoteData.id);
       }
+
+      setProgress(100);
     } catch (error) {
       console.error("Failed to load flow:", error);
+      setProgress(0); // 發生錯誤時重置進度
     } finally {
-      setIsRestoring(false); // 請求完成後關閉 Loading
+      clearInterval(interval); // 停止模擬進度
+      setTimeout(() => {
+        setIsRestoring(false);
+        setProgress(0); // 1 秒後重置進度條
+      }, 1000);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setNodes, setEdges, setViewport, rfInstance]);
 
   useEffect(() => {
@@ -375,21 +399,6 @@ export default function Flow() {
         panOnScroll
         onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
       >
-        <Panel position="top-right" className="hidden">
-          {/* <Button onClick={onSave} disabled={isSaving}>
-            {isSaving ? (
-              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
-            {isSaving ? "Saving..." : "Save"}
-          </Button>
-          <Button onClick={onRestore} disabled={isRestoring}>
-            {isRestoring ? (
-              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
-            {isRestoring ? "Restoring..." : "Restore"}
-          </Button> */}
-          <Button onClick={() => serverSignOut()}>sign out</Button>
-        </Panel>
         <Panel position="bottom-center">
           <Toolbar className="inline-flex w-auto" />
         </Panel>
