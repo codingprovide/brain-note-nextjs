@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+// import { PrismaClient } from "@prisma/client";
 import { auth } from "@/auth";
-const prisma = new PrismaClient();
-
+import prisma from "@/prisma";
 export async function POST(req: Request) {
   try {
     const session = await auth();
     if (!session?.user?.email) {
-      return NextResponse.json({ error: "未授權" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -15,22 +14,30 @@ export async function POST(req: Request) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "找不到使用者" }, { status: 400 });
+      return NextResponse.json({ error: "User not found" }, { status: 400 });
     }
 
-    const userId = user.id;
+    const { flowData, id } = await req.json();
 
-    const { flowData } = await req.json();
-
-    const note = await prisma.note.create({
-      data: {
-        userId: userId,
-        flowData,
-      },
-    });
-
-    return NextResponse.json({ success: true, note });
+    if (id) {
+      // 更新指定筆記
+      await prisma.note.update({
+        where: { id },
+        data: { flowData },
+      });
+      return NextResponse.json({ success: true });
+    } else {
+      // 創建新筆記
+      const newNote = await prisma.note.create({
+        data: {
+          userId: user.id,
+          flowData,
+        },
+      });
+      return NextResponse.json({ success: true, id: newNote.id });
+    }
   } catch (error) {
-    return NextResponse.json({ error: error }, { status: 500 });
+    const message = error instanceof Error ? error.message : "未知錯誤";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -44,7 +44,6 @@ interface SidebarRightProps {
 }
 
 export function SidebarRight({ rightSidebarOpen }: SidebarRightProps) {
-  console.log(rightSidebarOpen);
   return (
     <Sidebar
       side="right"

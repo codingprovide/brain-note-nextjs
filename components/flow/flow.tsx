@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   ReactFlow,
   useNodesState,
@@ -18,7 +18,7 @@ import { v4 as uuid } from "uuid";
 import { Button } from "@/components/ui/button";
 import { EditorNodePropsType } from "@/types/types";
 import { serverSignOut } from "@/app/actions/auth";
-import { LoaderCircle, X, Send, Loader } from "lucide-react";
+import { X, Send, Loader } from "lucide-react";
 import HandWritingCanvas from "./HandwritingCanvas";
 import { Toolbar } from "../ui/flow-ui/toolbar";
 import { useToolBarStore, ToolBarState } from "@/store/tool-bar-store";
@@ -42,6 +42,10 @@ import { useNodeStore } from "@/store/nodes-store";
 import { JSONContent } from "@tiptap/react";
 import { useKeyPress } from "@xyflow/react";
 import { useNodes } from "@xyflow/react";
+import debounce from "lodash.debounce";
+// import * as Y from "yjs";
+// import SupabaseProvider from "y-supabase";
+// import { createClient } from "@/utils/server";
 
 const proOptions = { hideAttribution: true };
 
@@ -55,10 +59,15 @@ const nodeTypes = {
 };
 
 export default function Flow() {
+  const [noteId, setNoteId] = useState<string | null>(null);
+
   const [isSaving, setIsSaving] = useState(false);
+  console.log(isSaving);
+  const hasRestored = useRef(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const edgeReconnectSuccessful = useRef(true);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance<
     EditorNodePropsType,
@@ -77,8 +86,57 @@ export default function Flow() {
     setSelectedNodeIds,
     setSelectedNodes,
   } = useNodeStore((state) => state);
-
+  const { screenToFlowPosition, setViewport } = useReactFlow();
   const currentNodes = useNodes();
+  const onRestore = useCallback(async () => {
+    setIsRestoring(true); // 開始 Loading
+    try {
+      const response = await fetch("/api/note/get");
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (data.flowData !== null) {
+        const flow = data.flowData;
+        const { x = 0, y = 0, zoom = 1 } = flow.viewport;
+
+        setNodes(flow.nodes);
+        setEdges(flow.edges);
+        setViewport({ x, y, zoom });
+        setNoteId(data.id);
+      } else {
+        // 沒有現有筆記，創建新筆記
+
+        if (!rfInstance) return;
+        const flow = rfInstance.toObject();
+        const createResponse = await fetch("/api/note/save", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ flowData: flow }),
+        });
+        if (!createResponse.ok) {
+          throw new Error(`Error creating note: ${createResponse.statusText}`);
+        }
+        const newNoteData = await createResponse.json();
+        setNoteId(newNoteData.id);
+      }
+    } catch (error) {
+      console.error("Failed to load flow:", error);
+    } finally {
+      setIsRestoring(false); // 請求完成後關閉 Loading
+    }
+  }, [setNodes, setEdges, setViewport, rfInstance]);
+
+  useEffect(() => {
+    if (rfInstance && !hasRestored.current) {
+      hasRestored.current = true;
+      onRestore();
+    }
+  }, [rfInstance, onRestore]);
 
   useEffect(() => {
     const currentSelectedNodes = currentNodes?.filter((node) => node?.selected);
@@ -88,11 +146,12 @@ export default function Flow() {
     }
   }, [nodes, setSelectedNodes, setSelectedNodeIds, currentNodes]);
 
-  const { screenToFlowPosition, setViewport } = useReactFlow();
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
+
+  // const supabase = createClient();
 
   const isCtrlCPressed = useKeyPress(["Control+c"]);
   const isCtrlVPressed = useKeyPress(["Control+v"]);
@@ -127,7 +186,6 @@ export default function Flow() {
     }));
 
     setClipboard(relativeNodes);
-    console.log("Copied nodes:", relativeNodes); // 調試用
   }, [selectedNodes]);
 
   // 貼上邏輯：根據當前滑鼠位置，依據先前存的相對位置計算出新節點的位置
@@ -148,7 +206,6 @@ export default function Flow() {
     }));
 
     setNodes((nds) => nds.concat(newNodes));
-    console.log("Pasted nodes:", newNodes); // 調試用
   }, [
     clipboard,
     mousePosition.x,
@@ -217,90 +274,71 @@ export default function Flow() {
     [setEdges]
   );
 
-  const onSave = useCallback(async () => {
-    if (!rfInstance) return;
-    setIsSaving(true); // 開始 Loading
-
-    try {
-      const flow = rfInstance.toObject();
-      const response = await fetch("/api/note/save", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          flowData: flow, // 存入 Prisma `Json` 字段
-        }),
+  const saveFlow = useCallback(async () => {
+    if (!noteId || isRestoring || !rfInstance) return;
+    const flow = rfInstance.toObject();
+    setIsSaving(true);
+    fetch("/api/note/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ flowData: flow, id: noteId }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Error: ${response.statusText}`);
+        }
+        console.log("Flow saved successfully");
+      })
+      .catch((error) => {
+        console.error("Failed to save flow:", error);
+      })
+      .finally(() => {
+        setIsSaving(false);
       });
+  }, [isRestoring, noteId, rfInstance]);
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
+  const debouncedSave = useMemo(() => debounce(saveFlow, 500), [saveFlow]);
+  useEffect(() => {
+    debouncedSave();
+    // 注意：如果 debouncedSave 是 debounce 過的函數，這裡需要確保它在組件卸載時被取消，以免記憶體泄漏
+    return () => {
+      if (debouncedSave.cancel) {
+        debouncedSave.cancel();
       }
+    };
+  }, [nodes, edges, debouncedSave]);
 
-      console.log("Flow saved successfully");
-    } catch (error) {
-      console.error("Failed to save flow:", error);
-    } finally {
-      setIsSaving(false); // 請求完成後關閉 Loading
-    }
-  }, [rfInstance]);
-
-  const onRestore = useCallback(async () => {
-    setIsRestoring(true); // 開始 Loading
-    try {
-      const response = await fetch("/api/note/get");
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
+  const handleAddNode = useCallback(
+    (
+      event:
+        | React.MouseEvent<HTMLDivElement, MouseEvent>
+        | React.TouchEvent<HTMLDivElement>
+    ) => {
+      if ((event.target as Element).classList.contains("react-flow__pane")) {
+        const { clientX, clientY } =
+          "changedTouches" in event ? event.changedTouches[0] : event;
+        const editorMapping = {
+          Text: "textNode",
+          Canvas: "canvasNode",
+          Pdf: "pdfNode",
+        };
+        // 這裡 activeTool 需從你的工具列 store 中獲取
+        const editorType =
+          editorMapping[activeTool as keyof typeof editorMapping];
+        if (!editorType) return;
+        const newNode = {
+          id: uuid(),
+          position: screenToFlowPosition({ x: clientX, y: clientY }),
+          data: { content: undefined, html: undefined },
+          type: editorType,
+        };
+        setNodes((nds) => [...nds, newNode]);
+        // 切換回選取模式，activeTool 也來自 store
+        setActiveTool("Select");
       }
-
-      const data = await response.json();
-      if (data.flowData) {
-        const flow = data.flowData;
-        const { x = 0, y = 0, zoom = 1 } = flow.viewport;
-
-        setNodes(flow.nodes || []);
-        setEdges(flow.edges || []);
-        setViewport({ x, y, zoom });
-      }
-    } catch (error) {
-      console.error("Failed to load flow:", error);
-    } finally {
-      setIsRestoring(false); // 請求完成後關閉 Loading
-    }
-  }, [setNodes, setEdges, setViewport]);
-
-  const handleAddNode = (
-    event:
-      | React.MouseEvent<HTMLDivElement, MouseEvent>
-      | React.TouchEvent<HTMLDivElement>
-  ) => {
-    if ((event.target as Element).classList.contains("react-flow__pane")) {
-      const { clientX, clientY } =
-        "changedTouches" in event ? event.changedTouches[0] : event;
-      const editorMapping = {
-        Text: "textNode",
-        Canvas: "canvasNode",
-        Pdf: "pdfNode",
-      };
-
-      const editorType =
-        editorMapping[activeTool as keyof typeof editorMapping];
-      if (!editorType) return;
-
-      const newNode = {
-        id: uuid(),
-        position: screenToFlowPosition({ x: clientX, y: clientY }),
-        data: {
-          content: undefined,
-          html: undefined,
-        },
-        type: editorType,
-      };
-
-      setNodes((nds) => [...nds, newNode]);
-      setActiveTool("Select");
-    }
-  };
+    },
+    [activeTool, screenToFlowPosition, setNodes, setActiveTool]
+  );
 
   return (
     <div className={clsx(" h-screen w-screen ")}>
@@ -338,7 +376,7 @@ export default function Flow() {
         onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
       >
         <Panel position="top-right" className="hidden">
-          <Button onClick={onSave} disabled={isSaving}>
+          {/* <Button onClick={onSave} disabled={isSaving}>
             {isSaving ? (
               <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
             ) : null}
@@ -349,7 +387,7 @@ export default function Flow() {
               <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
             ) : null}
             {isRestoring ? "Restoring..." : "Restore"}
-          </Button>
+          </Button> */}
           <Button onClick={() => serverSignOut()}>sign out</Button>
         </Panel>
         <Panel position="bottom-center">

@@ -112,10 +112,10 @@ export function NavMyPaper({
           <DialogHeader>
             <DialogTitle>{selectedPaper?.title || "Untitled"}</DialogTitle>
             <DialogDescription>
-              <div className="flex items-center gap-1 mt-1">
+              <span className="flex items-center gap-1 mt-1">
                 <User className="h-3 w-3" />
                 <span>{selectedPaper?.authors || "Unknown"}</span>
-              </div>
+              </span>
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
