@@ -324,7 +324,6 @@ export default function Flow() {
   const debouncedSave = useMemo(() => debounce(saveFlow, 500), [saveFlow]);
   useEffect(() => {
     debouncedSave();
-    // 注意：如果 debouncedSave 是 debounce 過的函數，這裡需要確保它在組件卸載時被取消，以免記憶體泄漏
     return () => {
       if (debouncedSave.cancel) {
         debouncedSave.cancel();
@@ -346,7 +345,7 @@ export default function Flow() {
           Canvas: "canvasNode",
           Pdf: "pdfNode",
         };
-        // 這裡 activeTool 需從你的工具列 store 中獲取
+
         const editorType =
           editorMapping[activeTool as keyof typeof editorMapping];
         if (!editorType) return;
@@ -357,7 +356,7 @@ export default function Flow() {
           type: editorType,
         };
         setNodes((nds) => [...nds, newNode]);
-        // 切換回選取模式，activeTool 也來自 store
+
         setActiveTool("Select");
       }
     },

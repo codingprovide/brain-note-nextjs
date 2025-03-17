@@ -10,7 +10,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import clsx from "clsx";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useState, useEffect } from "react";
 import { Handle, HandleType, Position } from "@xyflow/react";
 import { useReactFlow, NodeResizer, useNodeId } from "@xyflow/react";
 import { Document, Page, pdfjs } from "react-pdf";
@@ -36,6 +36,7 @@ interface EditorNodeTypeProps {
   isConnectable: boolean;
   selected: boolean;
   dragging: boolean;
+  data: { content: string | undefined; html: string | undefined };
 }
 
 interface handleProps {
@@ -58,13 +59,31 @@ const handles: handleProps[] = [
 const RenderPdf = memo(function RenderPdf({
   isConnectable,
   selected,
+  data,
 }: EditorNodeTypeProps) {
   const nodeId = useNodeId();
   const { setNodes } = useReactFlow();
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const [uploadedUrl, setUploadedUrl] = useState("");
+  const [uploadedUrl, setUploadedUrl] = useState(data.content || "");
   const [saveStatus, setSaveStatus] = useState("");
+
+  const handleContentChange = useCallback(
+    (content: string) => {
+      setNodes((nodes) =>
+        nodes.map((node) =>
+          node.id === nodeId
+            ? { ...node, data: { ...node.data, content } }
+            : node
+        )
+      );
+    },
+    [nodeId, setNodes]
+  );
+
+  useEffect(() => {
+    handleContentChange(uploadedUrl);
+  }, [uploadedUrl, handleContentChange]);
 
   const handlePrevPage = () => {
     setPageNumber((prev) => (prev <= 1 ? 1 : prev - 1));
@@ -176,25 +195,30 @@ const RenderPdf = memo(function RenderPdf({
           />
         ))}
 
-        {saveStatus !== "success" && (
-          <PdfUploader
-            uploadedUrl={uploadedUrl}
-            setUploadedUrl={setUploadedUrl}
-            setSaveStatus={setSaveStatus}
-            saveStatus={saveStatus}
-          />
-        )}
+        {saveStatus !== "success" ||
+          (!data.content && (
+            <PdfUploader
+              uploadedUrl={uploadedUrl}
+              setUploadedUrl={setUploadedUrl}
+              setSaveStatus={setSaveStatus}
+              saveStatus={saveStatus}
+            />
+          ))}
 
-        {saveStatus === "success" && (
-          <div>
-            <Document file={uploadedUrl} onLoadSuccess={onDocumentLoadSuccess}>
-              <Page pageNumber={pageNumber} />
-            </Document>
-            <p>
-              Page {pageNumber} / Total {numPages} Pages
-            </p>
-          </div>
-        )}
+        {saveStatus === "success" ||
+          (data.content && (
+            <div>
+              <Document
+                file={uploadedUrl}
+                onLoadSuccess={onDocumentLoadSuccess}
+              >
+                <Page pageNumber={pageNumber} />
+              </Document>
+              <p>
+                Page {pageNumber} / Total {numPages} Pages
+              </p>
+            </div>
+          ))}
       </CardContent>
     </Card>
   );

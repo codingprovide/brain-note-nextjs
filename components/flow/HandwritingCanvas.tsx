@@ -56,11 +56,18 @@ const handles: handleProps[] = [
 export default function HandWritingCanvas({
   selected,
   isConnectable,
+  data,
 }: {
   selected: boolean;
   isConnectable: boolean;
+  data: { content: DrawLine[] | undefined; html: string | undefined };
 }) {
-  const [lines, setLines] = useState<DrawLine[]>([]);
+  const [lines, setLines] = useState<DrawLine[]>(() => {
+    if (!data.content) {
+      return [];
+    }
+    return data.content;
+  });
   const [currentPoints, setCurrentPoints] = useState<
     [number, number, number][]
   >([]);
@@ -80,23 +87,9 @@ export default function HandWritingCanvas({
   const [stageSize, setStageSize] = useState({ width: 300, height: 300 });
   const [isResize, setIsResize] = useState(false);
   const [cardSize, setCardSize] = useState({ width: 500, height: 500 });
+  const nodeId = useNodeId();
+  const { setNodes } = useReactFlow();
 
-  //   if (!containerRef.current) return;
-  //   if (!isResize) return;
-  //   const container = containerRef.current;
-
-  //   const resizeObserver = new ResizeObserver(() => {
-  //     setStageSize({
-  //       width: container.clientWidth,
-  //       height: container.clientHeight,
-  //     });
-  //   });
-  //   resizeObserver.observe(container);
-
-  //   return () => {
-  //     resizeObserver.disconnect();
-  //   };
-  // }, [isResize]);
   useEffect(() => {
     setStageSize({
       width: cardSize.width - 74,
@@ -104,12 +97,22 @@ export default function HandWritingCanvas({
     });
   }, [cardSize]);
 
+  const handleContentChange = useCallback(
+    (content: DrawLine[]) => {
+      setNodes((nodes) =>
+        nodes.map((node) =>
+          node.id === nodeId
+            ? { ...node, data: { ...node.data, content } }
+            : node
+        )
+      );
+    },
+    [nodeId, setNodes]
+  );
+
   useEffect(() => {
-    console.log("paintTool has changed:", paintTool);
-  }, [paintTool]);
-  useEffect(() => {
-    console.log("lines", lines);
-  }, [lines]);
+    handleContentChange(lines);
+  }, [lines, handleContentChange]);
 
   function handlePointerDown(e: {
     evt: {
@@ -237,8 +240,6 @@ export default function HandWritingCanvas({
   function handleContextMenu(e: { evt: { preventDefault: () => void } }) {
     e.evt.preventDefault();
   }
-  const nodeId = useNodeId();
-  const { setNodes } = useReactFlow();
 
   // 刪除節點
   const handleDeleteNode = useCallback(() => {
@@ -279,33 +280,12 @@ export default function HandWritingCanvas({
           handleClassName="bg-transparent border-transparent"
           onResizeStart={() => setIsResize(true)}
           onResize={(event, params) => {
-            // 在調整過程中更新 Stage 尺寸
             if (containerRef.current) {
-              // Use params.width and params.height for the node dimensions
               setCardSize({ width: params.width, height: params.height });
-
-              // setStageSize({
-              //   width: params.width,
-              //   height: params.height,
-              // });
-
-              console.log(
-                "containerRef.current.clientWidth",
-                containerRef.current.clientWidth,
-                "containerRef.current.clientHeight",
-                containerRef.current.clientHeight
-              );
             }
           }}
           onResizeEnd={() => {
             setIsResize(false);
-            // 再次確保尺寸已更新
-            // if (containerRef.current) {
-            //   setStageSize({
-            //     width: containerRef.current.clientWidth,
-            //     height: containerRef.current.clientHeight,
-            //   });
-            // }
           }}
         />
 
