@@ -8,6 +8,7 @@ import {
   reconnectEdge,
   useReactFlow,
   Panel,
+  MarkerType,
 } from "@xyflow/react";
 
 import type { Edge, Connection, ReactFlowInstance } from "@xyflow/react";
@@ -56,6 +57,23 @@ const nodeTypes = {
   textNode: EditorNodeType,
   canvasNode: HandWritingCanvas,
   pdfNode: RenderPdf,
+};
+
+const defaultEdgeOptions = {
+  type: "default",
+  color: "#1f2937",
+  width: 20,
+  height: 20,
+  style: {
+    strokeWidth: 3,
+    stroke: "#1f2937",
+  },
+  markerStart: {
+    type: MarkerType.ArrowClosed,
+    width: 10,
+    height: 15,
+    color: "#1f2937",
+  },
 };
 
 export default function Flow() {
@@ -397,6 +415,7 @@ export default function Flow() {
         onReconnectEnd={onReconnectEnd}
         panOnScroll
         onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
+        defaultEdgeOptions={defaultEdgeOptions}
       >
         <Panel position="bottom-center">
           <Toolbar className="inline-flex w-auto" />
