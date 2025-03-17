@@ -43,6 +43,7 @@ import { JSONContent } from "@tiptap/react";
 import { useKeyPress } from "@xyflow/react";
 import { useNodes } from "@xyflow/react";
 import debounce from "lodash.debounce";
+import throttle from "lodash.throttle";
 
 // import * as Y from "yjs";
 // import SupabaseProvider from "y-supabase";
@@ -79,13 +80,13 @@ const defaultEdgeOptions = {
 export default function Flow() {
   const [noteId, setNoteId] = useState<string | null>(null);
 
-  const [isSaving, setIsSaving] = useState(false);
-  console.log(isSaving);
   const hasRestored = useRef(false);
   const edgeReconnectSuccessful = useRef(true);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
 
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [isDragging, setIsDragging] = useState(false);
+
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance<
     EditorNodePropsType,
     { id: string; source: string; target: string }
@@ -95,7 +96,6 @@ export default function Flow() {
     (state) => state
   );
   const {
-    selectedNodes,
     copyPressed,
     setCopyPressed,
     pastePressed,
@@ -105,9 +105,11 @@ export default function Flow() {
     setProgress,
     isRestoring,
     setIsRestoring,
+    setIsSaving,
   } = useNodeStore((state) => state);
   const { screenToFlowPosition, setViewport } = useReactFlow();
   const currentNodes = useNodes();
+  const mousePositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const onRestore = useCallback(async () => {
     setProgress(0);
     setIsRestoring(true); // 開始 Loading
@@ -180,13 +182,29 @@ export default function Flow() {
     }
   }, [rfInstance, onRestore]);
 
-  useEffect(() => {
-    const currentSelectedNodes = currentNodes?.filter((node) => node?.selected);
-    if (currentSelectedNodes) {
-      setSelectedNodes(currentSelectedNodes);
-      setSelectedNodeIds(new Set(currentSelectedNodes.map((node) => node.id)));
+  const { calculatedSelectedNodes, calculatedSelectedNodeIds } = useMemo(() => {
+    if (!currentNodes) {
+      return {
+        calculatedSelectedNodes: [],
+        calculatedSelectedNodeIds: new Set<string>(),
+      };
     }
-  }, [nodes, setSelectedNodes, setSelectedNodeIds, currentNodes]);
+    const filtered = currentNodes.filter(({ selected }) => selected);
+    return {
+      calculatedSelectedNodes: filtered,
+      calculatedSelectedNodeIds: new Set<string>(filtered.map(({ id }) => id)),
+    };
+  }, [currentNodes]);
+
+  useEffect(() => {
+    setSelectedNodes(calculatedSelectedNodes);
+    setSelectedNodeIds(calculatedSelectedNodeIds);
+  }, [
+    calculatedSelectedNodes,
+    calculatedSelectedNodeIds,
+    setSelectedNodes,
+    setSelectedNodeIds,
+  ]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -207,14 +225,12 @@ export default function Flow() {
   }, [isCtrlVPressed, setPastePressed]);
 
   const [clipboard, setClipboard] = useState<EditorNodePropsType[]>([]);
-  const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({
-    x: 0,
-    y: 0,
-  });
 
   // 複製邏輯：計算選取節點的相對位置，並存入 clipboard
   const handleCopy = useCallback(() => {
-    const validNodes = selectedNodes.filter((node) => node !== undefined);
+    const validNodes = calculatedSelectedNodes.filter(
+      (node) => node !== undefined
+    );
     if (validNodes.length === 0) return;
 
     const minX = Math.min(...validNodes.map((node) => node.position.x));
@@ -228,14 +244,20 @@ export default function Flow() {
     }));
 
     setClipboard(relativeNodes);
-  }, [selectedNodes]);
+  }, [calculatedSelectedNodes]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const handleMouseMove = useCallback(
+    throttle((e) => {
+      mousePositionRef.current = { x: e.clientX, y: e.clientY };
+    }, 100),
+    []
+  );
 
   // 貼上邏輯：根據當前滑鼠位置，依據先前存的相對位置計算出新節點的位置
   const handlePaste = useCallback(() => {
-    const pastePosition = screenToFlowPosition({
-      x: mousePosition.x,
-      y: mousePosition.y,
-    });
+    const { x, y } = mousePositionRef.current;
+    const pastePosition = screenToFlowPosition({ x, y });
 
     const newNodes: EditorNodePropsType[] = clipboard.map((node) => ({
       id: uuid(),
@@ -248,13 +270,7 @@ export default function Flow() {
     }));
 
     setNodes((nds) => nds.concat(newNodes));
-  }, [
-    clipboard,
-    mousePosition.x,
-    mousePosition.y,
-    screenToFlowPosition,
-    setNodes,
-  ]);
+  }, [clipboard, screenToFlowPosition, setNodes]);
 
   useEffect(() => {
     if (copyPressed) {
@@ -337,17 +353,30 @@ export default function Flow() {
       .finally(() => {
         setIsSaving(false);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRestoring, noteId, rfInstance]);
 
-  const debouncedSave = useMemo(() => debounce(saveFlow, 500), [saveFlow]);
+  const debouncedSave = useMemo(() => debounce(saveFlow, 1000), [saveFlow]);
   useEffect(() => {
-    debouncedSave();
+    if (!isDragging) {
+      debouncedSave();
+    }
     return () => {
       if (debouncedSave.cancel) {
         debouncedSave.cancel();
       }
     };
-  }, [nodes, edges, debouncedSave]);
+  }, [nodes, edges, isDragging, debouncedSave]);
+
+  // 拖曳開始時觸發
+  const onNodeDragStart = useCallback(() => {
+    setIsDragging(true);
+  }, []);
+
+  const onNodeDragStop = useCallback(() => {
+    setIsDragging(false);
+    debouncedSave();
+  }, [debouncedSave]);
 
   const handleAddNode = useCallback(
     (
@@ -389,6 +418,8 @@ export default function Flow() {
           { "cursor-crosshair": activeTool === "Canvas" },
           "bg-gray-200"
         )}
+        onNodeDragStart={onNodeDragStart}
+        onNodeDragStop={onNodeDragStop}
         ref={flowRef}
         onInit={(flowInstance) => setRfInstance(flowInstance)}
         nodes={nodes}
@@ -402,6 +433,7 @@ export default function Flow() {
         onClick={(event) => {
           handleAddNode(event);
         }}
+        onlyRenderVisibleElements={true}
         //用戶可以一次選擇多個節點
         selectionOnDrag={activeTool === "Select" ? true : false}
         //設定滑鼠的鍵位來拖曳1:左鍵 2:中鍵
@@ -414,7 +446,7 @@ export default function Flow() {
         onReconnectStart={onReconnectStart}
         onReconnectEnd={onReconnectEnd}
         panOnScroll
-        onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
+        onMouseMove={handleMouseMove}
         defaultEdgeOptions={defaultEdgeOptions}
       >
         <Panel position="bottom-center">

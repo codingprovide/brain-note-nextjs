@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, memo } from "react";
 import { Stage, Layer, Line } from "react-konva";
 import Konva from "konva";
 import { getStroke } from "perfect-freehand";
@@ -53,7 +53,7 @@ const handles: handleProps[] = [
   { id: "target-bottom", position: Position.Bottom, type: "target" },
 ];
 
-export default function HandWritingCanvas({
+const HandWritingCanvas = memo(function HandWritingCanvas({
   selected,
   isConnectable,
   data,
@@ -372,4 +372,5 @@ export default function HandWritingCanvas({
       </CardContent>
     </Card>
   );
-}
+});
+export default HandWritingCanvas;

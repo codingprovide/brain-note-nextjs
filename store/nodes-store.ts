@@ -16,6 +16,8 @@ export interface NodeStoreState {
   setProgress: (progress: SetStateAction<number>) => void;
   isRestoring: boolean;
   setIsRestoring: (isRestoring: boolean) => void;
+  isSaving: boolean;
+  setIsSaving: (isSaving: SetStateAction<boolean>) => void;
 }
 
 export const useNodeStore = create<NodeStoreState>((set) => ({
@@ -49,5 +51,10 @@ export const useNodeStore = create<NodeStoreState>((set) => ({
     set((state) => ({
       pastePressed:
         typeof action === "function" ? action(state.pastePressed) : action,
+    })),
+  isSaving: false,
+  setIsSaving: (action) =>
+    set((state) => ({
+      isSaving: typeof action === "function" ? action(state.isSaving) : action,
     })),
 }));

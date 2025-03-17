@@ -36,6 +36,7 @@ import { CodeBlock } from "./extensions/CodeBlock";
 import { Columns, Column } from "./extensions/MultiColumn";
 import { Document } from "./extensions/Document";
 import Blockquote from "@tiptap/extension-blockquote";
+import { memo } from "react";
 
 const extensions = [
   Document,
@@ -191,7 +192,7 @@ const extensions = [
   Blockquote,
 ];
 
-export default function Editor({
+const Editor = memo(function Editor({
   className,
   data,
   onContentChange,
@@ -220,4 +221,6 @@ export default function Editor({
       immediatelyRender={false}
     ></EditorProvider>
   );
-}
+});
+
+export default Editor;

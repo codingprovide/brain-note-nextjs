@@ -27,6 +27,7 @@ import {
 import { useEffect } from "react";
 import { useDocumentDataStore } from "@/store/documents-store";
 import Image from "next/image";
+import { useNodeStore } from "@/store/nodes-store";
 
 // This is sample data.
 const data = {
@@ -276,6 +277,7 @@ export function SidebarLeft({
 }: React.ComponentProps<typeof Sidebar>) {
   const { setDocuments, documents, loading, setError, setLoading } =
     useDocumentDataStore((state) => state);
+  const { isSaving } = useNodeStore((state) => state);
 
   useEffect(() => {
     async function fetchDocuments() {
@@ -315,6 +317,7 @@ export function SidebarLeft({
               className=" my-3"
             />
             <h2 className="text-lg font-semibold">Brain-Note</h2>
+            {isSaving && <span className="animate-pulse">Saving...</span>}
           </div>
         </div>
 
