@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "fastapi-dev": "pip3 install -r requirements.txt && python -m uvicorn api.index:app --reload",
+    "next-dev": "next dev",
     "postinstall": "prisma generate",
-    "dev": "next dev ",
+    "dev": "concurrently \"bun run next-dev\" \"bun run fastapi-dev\"",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint"
@@ -85,6 +87,7 @@
     "canvas": "^3.0.0-rc3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "concurrently": "^9.1.2",
     "date-fns": "^4.1.0",
     "fabric": "^6.5.4",
     "html-react-parser": "^5.2.2",
