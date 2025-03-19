@@ -1,101 +1,150 @@
 import os
-import json
-import numpy as np  # type: ignore
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, UploadFile, File, Body
 from pydantic import BaseModel
-from supabase import create_client, Client
-import google.generativeai as genai  # type: ignore
+import supabase
+from supabase import create_client
+import voyageai
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import HumanMessage
+from pypdf import PdfReader
+import uuid
+import json
+from io import BytesIO
+import httpx
 from dotenv import load_dotenv
-import os
-
-# 載入 .env 檔案中的環境變數
 load_dotenv()
 
 
-# 配置 Google Generative AI API 金鑰與模型
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-model = genai.GenerativeModel('gemini-embedding-exp-03-07')
-
-# 初始化 Supabase 用戶端（請將環境變數 SUPABASE_URL 與 SUPABASE_KEY 設定好）
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
-
-
 # Create FastAPI instance with custom docs and openapi url
+
+
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_ANON_KEY")
+supabase_client = create_client(supabase_url, supabase_key)
+
+voyage_api_key = os.environ.get("VOYAGE_API_KEY")
+voyage_client = voyageai.Client(api_key=voyage_api_key)
+
+gemini_api_key = os.environ.get("GOOGLE_API_KEY")
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.0-flash", google_api_key=gemini_api_key)
+
 app = FastAPI(docs_url="/api/py/docs", openapi_url="/api/py/openapi.json")
 
 
-class AskRequest(BaseModel):
-    question: str
+class QueryRequest(BaseModel):
+    query: str
 
 
-def get_embedding(text: str):
+@app.get("/api/py/helloFastApi")
+def hello_fast_api():
+    return {"message": "Hello from FastAPI"}
+
+
+@app.post("/api/py/process_pdf")
+async def process_pdf(r2_url: str = Body(..., embed=True)):
+    # 从提供的 r2 URL 下载文件内容
+    async with httpx.AsyncClient() as client:
+        response = await client.get(r2_url)
+        response.raise_for_status()  # 如果下载失败，则抛出异常
+        content = response.content
+
+    pdf_file = BytesIO(content)
+    reader = PdfReader(pdf_file)
+
+    # 提取总文本
+    total_text = ""
+    for page in reader.pages:
+        total_text += page.extract_text() + "\n"
+
+    # 提取前两页用于元数据
+    metadata_text = ""
+    for i in range(min(2, len(reader.pages))):
+        metadata_text += reader.pages[i].extract_text() + "\n"
+
+    # 构造元数据提取提示
+    metadata_prompt = f"""
+    从提供的文本中提取以下书目信息：
+    - Title
+    - Authors
+    - Journal Name
+    - Year
+    - DOI
+    以 JSON 格式提供答案，键为：title, authors, journal_name, year, doi
+    Text: {metadata_text}
     """
-    根據輸入文本產生向量表示（embedding）
+    metadata_message = HumanMessage(content=metadata_prompt)
+    metadata_response = llm.invoke([metadata_message])
+    try:
+        metadata = json.loads(metadata_response.content)
+    except json.JSONDecodeError:
+        metadata = {"title": "", "authors": "",
+                    "journal_name": "", "year": "", "doi": ""}
+
+    # 插入到 pdfs 表
+    pdf_id = str(uuid.uuid4())
+    year_str = metadata.get("year", "")
+    if year_str.isdigit():
+        year = int(year_str)
+    else:
+        year = None
+
+    supabase_client.table("pdfs").insert({
+        "id": pdf_id,
+        "title": metadata.get("title", ""),
+        "authors": metadata.get("authors", ""),
+        "journal_name": metadata.get("journal_name", ""),
+        "year": year,
+        "doi": metadata.get("doi", "")
+    }).execute()
+
+    # 将文本分割成块，每块 512 字符
+    chunk_size = 512
+    chunks = [total_text[i:i+chunk_size]
+              for i in range(0, len(total_text), chunk_size)]
+
+    for i, chunk in enumerate(chunks):
+        # 生成嵌入
+        embedding_result = voyage_client.embed(
+            [chunk], model="voyage-3-large")
+        embedding = embedding_result.embeddings[0]
+
+        # 插入到 chunks 表
+        supabase_client.table("chunks").insert({
+            "id": str(uuid.uuid4()),
+            "pdf_id": pdf_id,
+            "chunk_number": i,
+            "text": chunk,
+            "embedding": embedding
+        }).execute()
+
+    return {"message": "PDF processed successfully", "pdf_id": pdf_id}
+
+
+@app.post("/api/py/query")
+async def query(request: QueryRequest):
+    user_query = request.query
+
+    # 生成查询嵌入
+    query_embedding_result = voyage_client.embed(
+        [user_query], model="voyage-2")
+    query_embedding = query_embedding_result.embeddings[0]
+
+    # 搜索前 5 个最相似的块
+    result = supabase_client.rpc(
+        "match_chunks", {"query_embedding": query_embedding, "limit_num": 5}).execute()
+    top_chunks = result.data
+
+    # 获取顶部块的文本
+    context = "\n".join([chunk["text"] for chunk in top_chunks])
+
+    # 为 LLM 创建提示
+    prompt = f"""
+    根据提供的上下文回答以下问题：
+    Question: {user_query}
+    Context: {context}
     """
-    response = model.generate_content(text)
-    # 假設 response 中有 embedding 欄位
-    return response.embedding
+    message = HumanMessage(content=prompt)
+    response = llm.invoke([message])
 
-
-def cosine_similarity(vec1, vec2):
-    """計算兩向量間的餘弦相似度"""
-    vec1 = np.array(vec1)
-    vec2 = np.array(vec2)
-    norm1 = np.linalg.norm(vec1)
-    norm2 = np.linalg.norm(vec2)
-    if norm1 == 0 or norm2 == 0:
-        return 0.0
-    return float(np.dot(vec1, vec2) / (norm1 * norm2))
-
-
-def get_relevant_chunks(query_embedding, top_k=3):
-    """
-    從 Supabase 中取得所有文件區塊，計算與 query_embedding 的相似度，
-    並返回最相關的 top_k 筆結果。
-    """
-    response = supabase.table("document_chunks").select("*").execute()
-    if response.error:
-        raise HTTPException(
-            status_code=500, detail="Error fetching document chunks")
-    chunks = response.data
-
-    # 計算每個區塊與查詢向量間的相似度
-    for chunk in chunks:
-        embedding = chunk.get("embedding")
-        if isinstance(embedding, str):
-            try:
-                embedding = json.loads(embedding)
-            except Exception:
-                embedding = []
-        chunk["similarity"] = cosine_similarity(
-            query_embedding, embedding) if embedding else 0.0
-
-    # 按相似度由高到低排序並取前 top_k 筆
-    sorted_chunks = sorted(chunks, key=lambda x: x["similarity"], reverse=True)
-    return sorted_chunks[:top_k]
-
-
-def generate_answer(prompt: str):
-    """
-    依據上下文提示字串向 LLM 請求生成答案
-    """
-    response = model.generate_content(prompt)
-    # 假設回應中有 text 欄位
-    return response.text
-
-
-@app.post("/ask")
-async def ask_question(request: AskRequest):
-    question = request.question
-    # 產生查詢向量
-    query_embedding = get_embedding(question)
-    # 取得最相關的區塊
-    relevant_chunks = get_relevant_chunks(query_embedding)
-    context = "\n".join([chunk.get("content", "")
-                        for chunk in relevant_chunks])
-    # 建立帶上下文的提示字串
-    prompt = f"Answer the question based on the provided context:\n{context}\nQuestion: {question}"
-    answer = generate_answer(prompt)
-    return {"answer": answer}
+    return {"answer": response.content}
