@@ -25,7 +25,7 @@ access_key_id = os.environ.get('NEXT_PUBLIC_ACCESS_KEY_ID')
 secret_access_key = os.environ.get('NEXT_PUBLIC_SECRET_ACCESS_KEY')
 
 supabase_url = os.environ.get("SUPABASE_URL")
-supabase_key = os.environ.get("SUPABASE_ANON_KEY")
+supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 supabase_client = create_client(supabase_url, supabase_key)
 
 voyage_api_key = os.environ.get("VOYAGE_API_KEY")
@@ -59,40 +59,85 @@ def hello_fast_api():
 
 
 @app.post("/api/py/process_pdf")
-async def process_pdf(object_key: str = Body(...)):
+async def process_pdf(object_key: str = Body(..., embed=True)):
+    print(f"Received object_key: {object_key}")  # ✅ 先確認 object_key 是否正確
+
     try:
+        print("Starting to download PDF from R2")
         # 创建 BytesIO 对象保存下载内容
         bucket_name = "brain-note-storage"
         pdf_stream = BytesIO()
 
         # 从 R2 下载文件到 BytesIO
         s3_client.download_fileobj(bucket_name, object_key, pdf_stream)
+        print("PDF downloaded successfully")
 
         # 将文件指针重置到开头
         pdf_stream.seek(0)
+        print("Creating PdfReader")
 
         # 使用 PdfReader 读取 PDF
         reader = PdfReader(pdf_stream)
+        print("PdfReader created successfully")
+
+        print("Extracting total text")
 
         # 提取总文本
         total_text = ""
         for page in reader.pages:
             total_text += page.extract_text() + "\n"
-
+            print("Total text extracted")
         # 提取前两页用于元数据
         metadata_text = ""
         for i in range(min(2, len(reader.pages))):
             metadata_text += reader.pages[i].extract_text() + "\n"
+            print("Metadata text extracted")
 
         # 构造元数据提取提示
         metadata_prompt = f"""
-        从提供的文本中提取以下书目信息：
+        從提供的文本中提取以下書目信息：
         - Title
         - Authors
         - Journal Name
         - Year
         - DOI
         以 JSON 格式提供答案，键为：title, authors, journal_name, year, doi
+
+        以下是幾個示例：
+
+        示例1：
+        文本：
+        "Title: Advanced Machine Learning Techniques
+        Authors: John Doe, Jane Smith
+        Journal: Journal of AI Research
+        Year: 2023
+        DOI: 10.1234/abc123"
+
+        答案：
+        {{"title": "Advanced Machine Learning Techniques", "authors": "John Doe, Jane Smith", "journal_name": "Journal of AI Research", "year": "2023", "doi": "10.1234/abc123"}}
+
+        示例2：
+        文本：
+        "Advanced Machine Learning Techniques
+        John Doe and Jane Smith
+        Journal of AI Research, 2023
+        DOI: 10.1234/abc123"
+
+        答案：
+        {{"title": "Advanced Machine Learning Techniques", "authors": "John Doe and Jane Smith", "journal_name": "Journal of AI Research", "year": "2023", "doi": "10.1234/abc123"}}
+
+        示例3：
+        文本：
+        "Title: Another Paper
+        Authors: Alice Johnson
+        Year: 2024"
+
+        答案：
+        {{"title": "Another Paper", "authors": "Alice Johnson", "journal_name": "", "year": "2024", "doi": ""}}
+
+        如果某些信息缺失，請在 JSON 中留空。
+
+        現在，請從以下文本中提取信息：
         Text: {metadata_text}
         """
         metadata_message = HumanMessage(content=metadata_prompt)
@@ -142,7 +187,9 @@ async def process_pdf(object_key: str = Body(...)):
 
         return {"message": "PDF processed successfully", "pdf_id": pdf_id}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"下載或處理過程中發生錯誤：{str(e)}")
+        print(f"Error occurred: {type(e).__name__} - {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"下載或處理過程中發生錯誤：{type(e).__name__} - {str(e)}")
 
 
 @app.post("/api/py/query")
@@ -151,7 +198,7 @@ async def query(request: QueryRequest):
 
     # 生成查询嵌入
     query_embedding_result = voyage_client.embed(
-        [user_query], model="voyage-2")
+        [user_query], model="voyage-3-large")
     query_embedding = query_embedding_result.embeddings[0]
 
     # 搜索前 5 个最相似的块

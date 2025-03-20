@@ -395,6 +395,8 @@ export default function Flow() {
 
         const editorType =
           editorMapping[activeTool as keyof typeof editorMapping];
+
+        console.log("editorType", editorType);
         if (!editorType) return;
         const newNode = {
           id: uuid(),

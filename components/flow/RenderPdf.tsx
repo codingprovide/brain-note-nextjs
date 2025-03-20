@@ -111,6 +111,11 @@ const RenderPdf = memo(function RenderPdf({
     setNodes((nodes) => nodes.filter((node) => node.id !== nodeId));
   }, [nodeId, setNodes]);
 
+  useEffect(() => {
+    console.log("data.content", data.content);
+    console.log("svaeStatus", saveStatus);
+  }, [data.content, saveStatus]);
+
   return (
     <Card
       style={cardStyle}
@@ -195,30 +200,25 @@ const RenderPdf = memo(function RenderPdf({
           />
         ))}
 
-        {saveStatus !== "success" ||
-          (!data.content && (
-            <PdfUploader
-              uploadedUrl={uploadedUrl}
-              setUploadedUrl={setUploadedUrl}
-              setSaveStatus={setSaveStatus}
-              saveStatus={saveStatus}
-            />
-          ))}
+        {(saveStatus !== "success" || data.content === undefined) && (
+          <PdfUploader
+            uploadedUrl={uploadedUrl}
+            setUploadedUrl={setUploadedUrl}
+            setSaveStatus={setSaveStatus}
+            saveStatus={saveStatus}
+          />
+        )}
 
-        {saveStatus === "success" ||
-          (data.content && (
-            <div>
-              <Document
-                file={uploadedUrl}
-                onLoadSuccess={onDocumentLoadSuccess}
-              >
-                <Page pageNumber={pageNumber} />
-              </Document>
-              <p>
-                Page {pageNumber} / Total {numPages} Pages
-              </p>
-            </div>
-          ))}
+        {saveStatus === "success" && data.content && (
+          <div>
+            <Document file={uploadedUrl} onLoadSuccess={onDocumentLoadSuccess}>
+              <Page pageNumber={pageNumber} />
+            </Document>
+            <p>
+              Page {pageNumber} / Total {numPages} Pages
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
