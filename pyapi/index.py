@@ -44,10 +44,9 @@ s3_client = boto3.client(
     region_name='auto'
 )
 
-app = FastAPI(docs_url="/api/py/docs", openapi_url="/api/py/openapi.json")
+app = FastAPI(docs_url="/pyapi/py/docs", openapi_url="/pyapi/py/openapi.json")
 
 # 配置 R2 客戶端
-
 
 
 class QueryRequest(BaseModel):
@@ -101,7 +100,8 @@ async def process_pdf(object_key: str = Body(...)):
         try:
             metadata = json.loads(metadata_response.content)
         except json.JSONDecodeError:
-            metadata = {"title": "", "authors": "", "journal_name": "", "year": "", "doi": ""}
+            metadata = {"title": "", "authors": "",
+                        "journal_name": "", "year": "", "doi": ""}
 
         # 插入到 pdfs 表
         pdf_id = str(uuid.uuid4())
@@ -122,11 +122,13 @@ async def process_pdf(object_key: str = Body(...)):
 
         # 将文本分割成块，每块 512 字符
         chunk_size = 512
-        chunks = [total_text[i:i+chunk_size] for i in range(0, len(total_text), chunk_size)]
+        chunks = [total_text[i:i+chunk_size]
+                  for i in range(0, len(total_text), chunk_size)]
 
         for i, chunk in enumerate(chunks):
             # 生成嵌入
-            embedding_result = voyage_client.embed([chunk], model="voyage-3-large")
+            embedding_result = voyage_client.embed(
+                [chunk], model="voyage-3-large")
             embedding = embedding_result.embeddings[0]
 
             # 插入到 chunks 表
