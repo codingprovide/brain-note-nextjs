@@ -58,7 +58,11 @@ export class API {
       });
 
       await API.r2.send(uploadCommand);
-      return `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${fileName}`;
+
+      return {
+        url: `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${fileName}`,
+        objectKey: fileName,
+      };
     } catch (error) {
       console.error("上傳PDF失敗:", error);
       throw new Error("上傳PDF失敗，請稍後再試");

@@ -93,15 +93,16 @@ model Note {
 }
 
 model Document {
-  id       String  @id @default(cuid())
-  title    String?
-  authors  String?
-  abstract String?
-  pdfUrl   String
-  userId   String
-  fileName String
-  type     String
-  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  title     String?
+  authors   String?
+  abstract  String?
+  pdfUrl    String
+  userId    String
+  fileName  String
+  type      String
+  objectKey String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

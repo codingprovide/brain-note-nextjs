@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
   const userId = user.id;
 
-  const { title, authors, abstract, pdfUrl, fileName, type } =
+  const { title, authors, abstract, pdfUrl, fileName, type, objectKey } =
     await request.json();
 
   if (!pdfUrl || !fileName) {
@@ -39,6 +39,7 @@ export async function POST(request: Request) {
         fileName,
         user: { connect: { id: userId } },
         type,
+        objectKey,
       },
     });
     return NextResponse.json(document, { status: 201 });

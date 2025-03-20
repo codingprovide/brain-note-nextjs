@@ -64,6 +64,7 @@ export default function PdfUploader({
   const [title, setTitle] = useState("");
   const [authors, setAuthors] = useState("");
   const [abstract, setAbstract] = useState("");
+  const [objectKey, setObjectKey] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -105,9 +106,10 @@ export default function PdfUploader({
     const progressInterval = simulateProgress();
 
     try {
-      const url = await API.uploadPDF(file);
+      const { url, objectKey } = await API.uploadPDF(file);
       setUploadProgress(100);
       setUploadedUrl(url);
+      setObjectKey(objectKey);
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -161,6 +163,7 @@ export default function PdfUploader({
           pdfUrl: uploadedUrl,
           fileName: file.name,
           type: "pdf",
+          objectKey,
         }),
       });
 
