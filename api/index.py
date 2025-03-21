@@ -1,7 +1,6 @@
 import os
-from fastapi import FastAPI, HTTPException, UploadFile, File, Body
+from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel
-import supabase
 from supabase import create_client
 import voyageai
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -10,7 +9,6 @@ from pypdf import PdfReader
 import uuid
 import json
 from io import BytesIO
-import httpx
 from dotenv import load_dotenv
 import boto3
 from botocore.config import Config
