@@ -45,7 +45,7 @@ s3_client = boto3.client(
     region_name='auto'
 )
 
-app = FastAPI(docs_url="/pyapi/py/docs", openapi_url="/pyapi/py/openapi.json")
+app = FastAPI(docs_url="/api/py/docs", openapi_url="/api/py/openapi.json")
 
 # 配置 R2 客戶端
 

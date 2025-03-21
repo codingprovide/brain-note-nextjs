@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const PLATFORM_URL = "https://brain-note-nextjs.vercel.app";
+
 const nextConfig: NextConfig = {
   rewrites: async () => {
     return [
@@ -8,21 +10,29 @@ const nextConfig: NextConfig = {
         destination:
           process.env.NODE_ENV === "development"
             ? "http://127.0.0.1:8000/api/py/:path*"
-            : "/api/py/:path*",
+            : "/api/",
       },
       {
         source: "/docs",
         destination:
           process.env.NODE_ENV === "development"
-            ? "http://127.0.0.1:8000/pyapi/py/docs"
-            : "/pyapi/py/docs",
+            ? "http://127.0.0.1:8000/api/py/docs"
+            : "/api/py/docs",
       },
       {
         source: "/openapi.json",
         destination:
           process.env.NODE_ENV === "development"
-            ? "http://127.0.0.1:8000/pyapi/py/openapi.json"
-            : "/pyapi/py/openapi.json",
+            ? "http://127.0.0.1:8000/api/py/openapi.json"
+            : "/api/py/openapi.json",
+      },
+      {
+        source: `/api/:path*`,
+        destination: `/api/:path*`,
+      },
+      {
+        source: `/:path*`,
+        destination: `${PLATFORM_URL}/:path*`,
       },
     ];
   },
