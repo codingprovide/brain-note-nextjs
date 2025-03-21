@@ -1,7 +1,7 @@
 {
   "builds": [
-    { "src": "app/**", "use": "@vercel/next" },
-    { "src": "pyapi/main.py", "use": "@vercel/python" }
+    { "src": "app/**", "use": "next.config.js" },
+    { "src": "pyapi/main.py", "use": "next.config.js" }
   ],
   "routes": [
     { "src": "/api/auth/(.*)", "dest": "/app/api/auth/$1" },
