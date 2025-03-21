@@ -288,7 +288,6 @@ export function SidebarLeft({
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const { documents } = await response.json();
-        console.log(documents);
         setDocuments(documents);
       } catch (err: unknown) {
         if (err instanceof Error) {

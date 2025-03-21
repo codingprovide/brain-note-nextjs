@@ -66,7 +66,9 @@ const RenderPdf = memo(function RenderPdf({
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [uploadedUrl, setUploadedUrl] = useState(data.content || "");
-  const [saveStatus, setSaveStatus] = useState("");
+  const [saveStatus, setSaveStatus] = useState(() =>
+    data.content ? "success" : ""
+  );
 
   const handleContentChange = useCallback(
     (content: string) => {
@@ -84,6 +86,12 @@ const RenderPdf = memo(function RenderPdf({
   useEffect(() => {
     handleContentChange(uploadedUrl);
   }, [uploadedUrl, handleContentChange]);
+
+  useEffect(() => {
+    if (data.content) {
+      setUploadedUrl(data.content);
+    }
+  }, [data.content]);
 
   const handlePrevPage = () => {
     setPageNumber((prev) => (prev <= 1 ? 1 : prev - 1));
@@ -110,11 +118,6 @@ const RenderPdf = memo(function RenderPdf({
   const handleDeleteNode = useCallback(() => {
     setNodes((nodes) => nodes.filter((node) => node.id !== nodeId));
   }, [nodeId, setNodes]);
-
-  useEffect(() => {
-    console.log("data.content", data.content);
-    console.log("svaeStatus", saveStatus);
-  }, [data.content, saveStatus]);
 
   return (
     <Card
@@ -200,7 +203,7 @@ const RenderPdf = memo(function RenderPdf({
           />
         ))}
 
-        {(saveStatus !== "success" || data.content === undefined) && (
+        {(saveStatus !== "success" || !data.content) && (
           <PdfUploader
             uploadedUrl={uploadedUrl}
             setUploadedUrl={setUploadedUrl}

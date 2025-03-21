@@ -141,6 +141,23 @@ export default function PdfUploader({
     }
   }
 
+  const processPDF = async (objectKey: string) => {
+    const response = await fetch("/api/py/process_pdf", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ object_key: objectKey }),
+    });
+
+    if (!response.ok) {
+      const errorDetail = await response.json();
+      throw new Error(errorDetail.detail || "發送失敗");
+    }
+
+    return response.json();
+  };
+
   // 呼叫 API 保存文件元數據
   const handleSaveMetadata = async () => {
     if (!uploadedUrl) return;
@@ -157,9 +174,6 @@ export default function PdfUploader({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          title,
-          authors,
-          abstract,
           pdfUrl: uploadedUrl,
           fileName: file.name,
           type: "pdf",
@@ -173,6 +187,8 @@ export default function PdfUploader({
       }
       setSaveStatus("success");
       setLoading(true);
+      fetchDocuments();
+      await processPDF(objectKey);
       fetchDocuments();
     } catch (error: unknown) {
       setSaveStatus(error instanceof Error ? error.message : "Save failed");

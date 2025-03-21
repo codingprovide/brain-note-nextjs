@@ -108,6 +108,9 @@ export default function Flow() {
     setIsSaving,
   } = useNodeStore((state) => state);
   const { screenToFlowPosition, setViewport } = useReactFlow();
+  const [ragMessages, setRagMessages] = useState<
+    { role: string; content: string }[]
+  >([]);
   const currentNodes = useNodes();
   const mousePositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const onRestore = useCallback(async () => {
@@ -332,6 +335,28 @@ export default function Flow() {
     [setEdges]
   );
 
+  const handleRag = async () => {
+    if (input.trim() === "") return;
+    try {
+      const response = await fetch("/api/py/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: input }),
+      });
+      if (!response.ok) {
+        throw new Error("RAG 查詢失敗");
+      }
+      const result = await response.json();
+      // 將 RAG 回覆以訊息的形式加入聊天列表中
+      setRagMessages((prev) => [
+        ...prev,
+        { role: "ai", content: result.answer },
+      ]);
+    } catch (error) {
+      console.error("RAG 查詢錯誤: ", error);
+    }
+  };
+
   const saveFlow = useCallback(async () => {
     if (!noteId || isRestoring || !rfInstance) return;
     const flow = rfInstance.toObject();
@@ -479,7 +504,7 @@ export default function Flow() {
                         No message yet
                       </div>
                     )}
-                    {messages?.map((message, index) => (
+                    {/* {messages?.map((message, index) => (
                       <div
                         className={clsx(
                           "mb-4",
@@ -535,7 +560,67 @@ export default function Flow() {
                           </ReactMarkdown>
                         </div>
                       </div>
-                    ))}
+                    ))} */}
+
+                    {[...(messages || []), ...ragMessages].map(
+                      (message, index) => (
+                        <div
+                          className={clsx(
+                            "mb-4",
+                            message.role === "user" ? "text-right" : "text-left"
+                          )}
+                          key={index}
+                        >
+                          <div
+                            className={clsx(
+                              "inline-block rounded-lg p-2",
+                              message.role === "user"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted"
+                            )}
+                          >
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                code: ({
+                                  inline,
+                                  children,
+                                  ...props
+                                }: {
+                                  inline?: boolean;
+                                  children?: React.ReactNode;
+                                }) =>
+                                  inline ? (
+                                    <code
+                                      {...props}
+                                      className="bg-gray-200 px-1 rounded"
+                                    >
+                                      {children}
+                                    </code>
+                                  ) : (
+                                    <pre
+                                      {...props}
+                                      className="bg-gray-200 p-2 rounded"
+                                    >
+                                      <code>{children}</code>
+                                    </pre>
+                                  ),
+                                ul: ({ children }) => (
+                                  <ul className="list-disc pl-4 space-y-1">
+                                    {children}
+                                  </ul>
+                                ),
+                                ol: ({ children }) => (
+                                  <li className="pl-4 space-y-1">{children}</li>
+                                ),
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+                          </div>
+                        </div>
+                      )
+                    )}
 
                     {isLoading && (
                       <div className="w-full flex justify-center items-center gap-3">
@@ -578,6 +663,9 @@ export default function Flow() {
                     className="flex-1"
                     placeholder="Type your message here"
                   />
+                  <Button type="button" onClick={handleRag}>
+                    RAG
+                  </Button>
                   <Button
                     type="submit"
                     className="size-9"

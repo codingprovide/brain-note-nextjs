@@ -14,15 +14,13 @@ model User {
   email         String          @unique
   emailVerified DateTime?
   image         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
   accounts      Account[]
-  sessions      Session[]
-  // Optional for WebAuthn support
   Authenticator Authenticator[]
+  Document      Document[]
   notes         Note[]
-
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  Document  Document[]
+  sessions      Session[]
 }
 
 model Account {
@@ -37,11 +35,9 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
 }
@@ -50,10 +46,9 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model VerificationToken {
@@ -64,7 +59,6 @@ model VerificationToken {
   @@id([identifier, token])
 }
 
-// Optional for WebAuthn support
 model Authenticator {
   credentialID         String  @unique
   userId               String
@@ -74,36 +68,42 @@ model Authenticator {
   credentialDeviceType String
   credentialBackedUp   Boolean
   transports           String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, credentialID])
 }
 
 model Note {
-  id       String  @id @default(cuid())
-  title    String?
-  flowData Json?
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id        String   @id @default(cuid())
+  title     String?
+  flowData  Json?
+  userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Document {
-  id        String  @id @default(cuid())
+  id        String   @id @default(uuid()) @db.Uuid
   title     String?
   authors   String?
   abstract  String?
   pdfUrl    String
   userId    String
   fileName  String
-  type      String
-  objectKey String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  type      String
+  objectKey String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks    chunks[] @relation("DocumentToChunks") // ✅ 關聯名稱
+}
+
+model chunks {
+  id           String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pdf_id       String?                @db.Uuid
+  chunk_number Int?
+  text         String?
+  embedding    Unsupported("vector")?
+  document     Document?              @relation("DocumentToChunks", fields: [pdf_id], references: [id], onDelete: Cascade)
 }

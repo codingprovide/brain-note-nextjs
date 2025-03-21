@@ -22,8 +22,7 @@ export async function POST(request: Request) {
 
   const userId = user.id;
 
-  const { title, authors, abstract, pdfUrl, fileName, type, objectKey } =
-    await request.json();
+  const { pdfUrl, fileName, type, objectKey } = await request.json();
 
   if (!pdfUrl || !fileName) {
     return NextResponse.json({ error: "PDF 上傳失敗" }, { status: 400 });
@@ -32,9 +31,6 @@ export async function POST(request: Request) {
   try {
     const document = await prisma.document.create({
       data: {
-        title,
-        authors,
-        abstract,
         pdfUrl,
         fileName,
         user: { connect: { id: userId } },
