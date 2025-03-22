@@ -88,26 +88,27 @@ async def process_pdf(object_key: str = Body(..., embed=True)):
         chunk_size = 512
         chunks = [total_text[i:i + chunk_size] for i in range(0, len(total_text), chunk_size)]
 
-        # 處理每個文本塊：生成嵌入並存入 Supabase 的 chunks 表中
-        for i, chunk in enumerate(chunks):
-            # 呼叫 Voyage API 生成嵌入
-            embedding_result = voyage_client.embed([chunk], model="voyage-3-large")
-            embedding = embedding_result.embeddings[0]
+        embedding_result = voyage_client.embed(chunks, model="voyage-3-large")
+        all_embeddings = embedding_result.embeddings  # list of vectors, 與 chunks 順序對應
 
-            # 根據 object_key 查找對應的 PDF id
-            pdf_result = supabase_client.table("Document").select("id").eq("objectKey", object_key).execute()
-            if pdf_result.data and len(pdf_result.data) > 0:
-                pdf_id = pdf_result.data[0]['id']
-            else:
-                raise Exception("未找到 PDF id")
-            # 插入每個文本塊到 chunks 表中
-            supabase_client.table("chunks").insert({
+        # 5. 查詢對應 PDF 的 id
+        pdf_result = supabase_client.table("Document").select("id").eq("objectKey", object_key).execute()
+        if not pdf_result.data or len(pdf_result.data) == 0:
+            raise Exception("未找到對應的 PDF id")
+        pdf_id = pdf_result.data[0]["id"]
+
+          # 6. 準備所有要插入到 chunks 表的資料，批次插入
+        insert_data = []
+        for i, chunk in enumerate(chunks):
+            insert_data.append({
                 "id": str(uuid.uuid4()),
                 "pdf_id": pdf_id,
                 "chunk_number": i,
                 "text": chunk,
-                "embedding": embedding
-            }).execute()
+                "embedding": all_embeddings[i]
+            })
+        # 批次插入到Supabase
+        supabase_client.table("chunks").insert(insert_data).execute()
 
         # --------------------------
         # 接下來開始提取元數據

@@ -188,12 +188,47 @@ export default function PdfUploader({
       setSaveStatus("success");
       setLoading(true);
       fetchDocuments();
-      await processPDF(objectKey);
-      fetchDocuments();
     } catch (error: unknown) {
       setSaveStatus(error instanceof Error ? error.message : "Save failed");
     }
   };
+
+    // 呼叫 API 保存文件元數據
+    const handAutoExtractMetadata = async () => {
+      if (!uploadedUrl) return;
+  
+      if (!file) {
+        setErrorMessage("Please select a PDF file first.");
+        return;
+      }
+  
+      try {
+        const response = await fetch("/api/documents/pdf/save", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pdfUrl: uploadedUrl,
+            fileName: file.name,
+            type: "pdf",
+            objectKey,
+          }),
+        });
+  
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Save failed");
+        }
+        setSaveStatus("success");
+        setLoading(true);
+        await processPDF(objectKey);
+        fetchDocuments();
+      } catch (error: unknown) {
+        setSaveStatus(error instanceof Error ? error.message : "Save failed");
+      }
+    };
+  
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -328,6 +363,7 @@ export default function PdfUploader({
             <Button onClick={handleSaveMetadata} className="w-full">
               Save Literature
             </Button>
+            <Button onClick={handAutoExtractMetadata} className="w-full">Auto Extract Meta</Button>
             {saveStatus && (
               <Alert className="mt-2">
                 <AlertDescription>{saveStatus}</AlertDescription>
